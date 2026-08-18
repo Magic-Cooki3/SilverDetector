@@ -174,6 +174,10 @@ The shipped detectors each show a technique you will probably want:
   Copy this whenever "recognise a version, name its CVEs" is the job (`ftp`, `smb`, `http` all do).
 - **`SmbDetector`** — carries state across lines (an nmap `smb-vuln-*` script id on one line, its
   `State: VULNERABLE` on another) and dedupes repeated findings.
+- **`WindowsPrivescDetector` + `windows_signatures.tsv`** — a *signature engine*: the detector is
+  small and generic, and all the knowledge is a regex-per-row table. This is the pattern to copy
+  when "match a lot of independent tells in a big blob" is the job (a winPEAS/linPEAS-style dump).
+  Adding a check is one TSV row; the code never changes.
 
 Copy whichever is closest to your input's shape. Note how many of these **share a table**: add a
 GTFOBins binary, a writable directory, or a CVE range once and every detector that reads that

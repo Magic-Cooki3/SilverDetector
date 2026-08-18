@@ -1,0 +1,23 @@
+                    ╔════════════════════╗
+════════════════════╣ linpeas.sh ╠════════════════════
+                    ╚════════════════════╝
+   Linux Privilege Escalation Awesome Script
+
+╔══════════╣ Operative system
+    Linux version 4.4.0-116-generic (buildd@lgw01-amd64-021) (gcc 5.4.0)
+
+╔══════════╣ Sudo version
+Sudo version 1.8.16
+
+╔══════════╣ Checking 'sudo -l'
+User www-data may run the following commands on target:
+    (root) NOPASSWD: /usr/bin/find
+
+╔══════════╣ SUID - Check easy privesc, exploits and write perms
+strace Not Found
+-rwsr-xr-x 1 root root 40128 May 15  2019 /usr/bin/newgrp
+-rwsr-sr-x 1 root root 1113504 Jun 10  2019 /tmp/.hidden/bash
+
+╔══════════╣ Capabilities
+Files with capabilities:
+/usr/bin/python2.7 = cap_setuid+ep

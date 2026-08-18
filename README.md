@@ -56,9 +56,27 @@ box — the same list a learner meets working through a CTF or a HackTheBox mach
 | `shadow` | `cat /etc/shadow`                                                  | No-password accounts, weak hash algorithms (MD5/DES), and for every live hash the exact `hashcat -m` / `john --format` to crack it |
 | `kernel` | `uname -a`, `uname -r`, `cat /proc/version`                        | The running kernel matched **automatically** against known local-privesc CVEs — Dirty COW, Dirty Pipe, the netfilter/nf_tables bugs — with the affected range |
 | `ports`  | `ss -tulpn`, `netstat -tulpn`, `nmap` (normal or `-oG`), `lsof -i`, a bare list of ports | What each port is for, whether it is bound to loopback or the whole network, whether the process holding it makes sense |
+| `winprivesc` | **winPEAS** output, `whoami /priv`, `whoami /groups`, `sc qc`, `reg query`, any Windows enum dump | The whole HackTricks Windows-privesc checklist as ~40 signatures: token privileges (SeImpersonate → Potato), privileged groups, AlwaysInstallElevated, unquoted/modifiable services, WDigest, GPP/autologon/SAM/unattend credentials, DLL hijacking, and more — each with what it is and the next step |
 
 Paste more than one at a time if you like — each format is detected and reported separately, so
-a whole enumeration dump (or a linpeas run) goes in at once and comes back split by tool.
+a whole enumeration dump goes in at once and comes back split by tool.
+
+### winPEAS and linPEAS — throw the whole scan in
+
+The goal: a pentester who doesn't recognise something in a scan pastes it here and gets told what
+it is and where to look.
+
+- **winPEAS**: the `winprivesc` detector reads the whole run and maps every interesting line to
+  the checklist — winPEAS colours lines by interest, this says *why each one matters and what to
+  do next*.
+- **linPEAS**: recognised and routed to the Linux detectors — a linPEAS paste lights up `setuid`,
+  `sudo`, `caps`, `cron`, `kernel`, `passwd`/`shadow` at once, each with its usual explanation and
+  the matching CVEs.
+
+```sh
+silverfinder winpeas_out.txt        # or:  .\winPEASany.exe | silverfinder   (paste it over)
+silverfinder -q linpeas_out.txt     # anomalies only
+```
 
 ### Automatic CVE matching
 
@@ -128,7 +146,13 @@ data/writable_dirs.tsv dirs a user can write (setuid + cron use it)
 data/service_cves.tsv  product + version range -> CVE  (ftp/smb/http)
 data/kernel_cves.tsv   kernel version range -> local-privesc CVE
 data/http_headers.tsv  which HTTP headers matter and why
+data/windows_signatures.tsv  regex -> Windows privesc finding (the checklist engine)
+data/windows_privileges.tsv  Windows token privileges -> exploitation
+data/windows_groups.tsv      privileged Windows groups
 ```
+
+`windows_signatures.tsv` is a plain regex-per-row table, so covering one more Windows check —
+or your own custom tell — is a single new line, no code.
 
 Several tables are shared, so one edit teaches several detectors: `gtfobins.tsv` feeds `setuid`
 and `sudo`; `writable_dirs.tsv` feeds `setuid` and `cron`; `service_cves.tsv` feeds `ftp`, `smb`
@@ -171,27 +195,44 @@ Windows default folders, code and knowledge base — is in
 [docs/ADDING_DETECTORS.md](docs/ADDING_DETECTORS.md), and the finished code ships in
 `src/silverdetector/detect/WindowsFoldersDetector.java` ready to switch on.
 
+## Updating it
+
+Point `--update` at a GitHub zip (make the repo public, hit **Code ▸ Download ZIP**, or use a
+branch/release `.zip` link) or a local `.zip`:
+
+```sh
+silverfinder --update https://github.com/Magic-Cooki3/SilverDetector/archive/refs/heads/main.zip
+silverfinder --update ~/Downloads/SilverDetector-main.zip
+```
+
+It downloads, checks the archive really is a SilverDetector tree, backs the current install up
+under `.backups/`, swaps in the new files, and rebuilds — rolling back automatically if the new
+code fails to build. Your own rows in `~/.config/silverdetector/data` are never touched. (Cloned
+it with git instead? `git pull && ./build.sh`.)
+
 ## Layout
 
 ```
-bin/silverdetector    launcher: paste mode, colour detection, auto-build
-build.sh              javac + jar, nothing else
-test.sh               regression suite - run it after changing a detector or a .tsv
-data/*.tsv            the knowledge base
-samples/*.txt         realistic pastes to try
+bin/silverdetector        launcher: paste mode, colour detection, auto-build, --update
+bin/silverdetector-update  self-update helper (download/verify/backup/swap/rebuild)
+build.sh                  javac + jar, nothing else
+test.sh                   regression suite - run it after changing a detector or a .tsv
+data/*.tsv                the knowledge base
+samples/*.txt             realistic pastes to try
 src/silverdetector/
-  Main.java           CLI
-  core/               Detector, Document, Finding, Severity, Analyzer, Kb (the .tsv loader)
-  detect/             the detectors themselves
-  report/             text and JSON output
+  Main.java               CLI
+  core/                   Detector, Document, Finding, Severity, Analyzer, Kb (the .tsv loader)
+  detect/                 the detectors themselves
+  report/                 text and JSON output
 ```
 
 ## Requirements
 
 A JDK, and nothing else. Built with `--release 17` — 17 is the baseline the code targets, so the
 jar runs unchanged on JDK 17 and anything newer. `./build.sh` is the whole build; override the
-floor with `SILVERDETECTOR_RELEASE=21 ./build.sh` if you ever need to.
+floor with `SILVERDETECTOR_RELEASE=21 ./build.sh` if you ever need to. (`--update` also uses
+`curl`/`wget` and `unzip`, falling back to the JDK's `jar` — all standard on a pentest box.)
 
 ```sh
-./test.sh             # 114 checks over the samples, detectors and override behaviour
+./test.sh             # 140 checks over the samples, detectors, updater and override behaviour
 ```

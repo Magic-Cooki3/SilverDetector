@@ -198,6 +198,34 @@ check "a hardened response is clean" \
     sh -c 'printf "HTTP/1.1 200 OK\nStrict-Transport-Security: max-age=63072000\nContent-Security-Policy: default-src '"'"'self'"'"'\nX-Frame-Options: DENY\nX-Content-Type-Options: nosniff\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "security headers present"'
 
 echo
+echo "windows privesc (winPEAS / checklist)"
+check "winpeas output picks the winprivesc detector" says "read with: winprivesc" samples/winpeas.txt
+check "whoami /priv is recognised"               says "read with: winprivesc" samples/whoami-priv.txt
+check "SeImpersonate is critical"                says "CRIT   SeImpersonatePrivilege" samples/whoami-priv.txt
+check "the Potato technique is named"            says "Potato" samples/whoami-priv.txt
+check "AlwaysInstallElevated is critical"        says "CRIT   AlwaysInstallElevated" samples/winpeas.txt
+check "autologon password is critical"           says "Autologon credentials" samples/winpeas.txt
+check "GPP cpassword is critical"                says "Group Policy Preferences password" samples/winpeas.txt
+check "SAM backup is critical"                   says "SAM / SYSTEM / NTDS backup" samples/winpeas.txt
+check "WDigest cleartext is a warning"           says "WDigest stores cleartext" samples/winpeas.txt
+check "the checklist item is cited"              says "checklist: AlwaysInstallElevated" samples/winpeas.txt
+check "a benign privilege is normal"             says "OK     SeChangeNotifyPrivilege" samples/whoami-priv.txt
+check "winprivesc does not fire on a dir listing" silent_about "\[winprivesc\]" samples/windows-dir.txt
+check "winprivesc does not fire on /etc/passwd"  silent_about "\[winprivesc\]" samples/etc-passwd.txt
+check "SeManageVolumePrivilege is flagged" \
+    sh -c 'printf "SeManageVolumePrivilege        Perform volume maintenance tasks   Enabled\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "SeManageVolume"'
+check "Administrators membership is critical" \
+    sh -c 'printf "GROUP INFORMATION\n-----------------\nGroup Name  Type\nBUILTIN\\\\Administrators  Alias  Mandatory group, Enabled\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "privileged group"'
+
+echo
+echo "peas acceptance"
+check "linpeas output is accepted"               says "read with:" samples/linpeas.txt
+check "linpeas kernel section -> Dirty COW"      says "CVE-2016-5195" samples/linpeas.txt
+check "linpeas sudo section -> GTFOBins find"    says "find via sudo" samples/linpeas.txt
+check "linpeas SUID section -> planted shell"    says "CRIT   /tmp/.hidden/bash" samples/linpeas.txt
+check "linpeas does not run the windows engine"  silent_about "\[winprivesc\]" samples/linpeas.txt
+
+echo
 echo "input handling"
 printf '22\n80\n443\n8080\n' > "$tmp/bare.txt"
 check "a bare list of ports is understood"       says "tcp/443 — https" "$tmp/bare.txt"
@@ -240,6 +268,29 @@ check "an override does not drop other rows" \
 
 printf 'port\tproto\tservice\trisk\tdescription\n9999\ttcp\n' > "$tmp/data/broken.tsv"
 check "a malformed table does not crash the run"  exit_is 1 samples/ss-tulpn.txt
+
+echo
+echo "self-update (--update)"
+check "--update with no arg prints usage" \
+    sh -c 'bin/silverdetector --update 2>&1 | grep -q "usage: silverdetector --update"'
+check "--update rejects a missing file" \
+    sh -c 'bin/silverdetector --update /no/such/file.zip >/dev/null 2>&1; [ $? = 2 ]'
+# build a GitHub-style zip of this tree, then update a throwaway copy from it
+updtmp=$tmp/upd
+mkdir -p "$updtmp/pkg/SilverDetector-x"
+cp -a src data bin docs build.sh test.sh README.md "$updtmp/pkg/SilverDetector-x/" 2>/dev/null
+echo "# update-test-marker" >> "$updtmp/pkg/SilverDetector-x/data/groups.tsv"
+( cd "$updtmp/pkg" && { command -v zip >/dev/null 2>&1 && zip -qr ../pkg.zip SilverDetector-x || jar cf ../pkg.zip SilverDetector-x; } ) >/dev/null 2>&1
+mkdir -p "$updtmp/inst"
+cp -a src data bin docs build.sh test.sh README.md "$updtmp/inst/"
+check "--update swaps files and rebuilds from a local zip" \
+    sh -c '"'"$updtmp"'/inst/bin/silverdetector" --update "'"$updtmp"'/pkg.zip" >/dev/null 2>&1 && grep -q update-test-marker "'"$updtmp"'/inst/data/groups.tsv"'
+check "--update leaves a restorable backup" \
+    sh -c 'ls "'"$updtmp"'/inst/.backups/"*.tgz >/dev/null 2>&1'
+check "the updated install still runs" \
+    sh -c '"'"$updtmp"'/inst/bin/silverdetector" --no-color samples/whoami-priv.txt 2>/dev/null | grep -q winprivesc'
+check "--update rejects a non-SilverDetector archive" \
+    sh -c 'mkdir -p "'"$updtmp"'/junk/x"; echo hi > "'"$updtmp"'/junk/x/a.txt"; ( cd "'"$updtmp"'/junk" && { command -v zip >/dev/null 2>&1 && zip -qr ../junk.zip x || jar cf ../junk.zip x; } ) >/dev/null 2>&1; bin/silverdetector --update "'"$updtmp"'/junk.zip" >/dev/null 2>&1; [ $? = 1 ]'
 
 echo
 echo "----------------------------------------"

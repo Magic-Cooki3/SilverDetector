@@ -71,6 +71,12 @@ public final class Main {
                     }
                     forcedId = args[++i];
                 }
+                case "--update" -> {
+                    err.println("--update is handled by the silverdetector/silverfinder launcher, "
+                            + "not the jar directly.");
+                    err.println("run:  silverfinder --update <github-zip-url | path/to.zip>");
+                    System.exit(2);
+                }
                 case "--json" -> json = true;
                 case "-q", "--anomalies", "--only-anomalies" -> showNormal = false;
                 case "-a", "--all" -> showNormal = true;
@@ -165,6 +171,8 @@ public final class Main {
                       --strict          exit 1 on NOTICE too, not just WARN and CRIT
                       --color/--no-color
                   -l, --list            list detectors, knowledge-base tables and search path
+                      --update <src>    update the whole tool from a GitHub zip URL or a .zip
+                                        path, then rebuild (via the launcher; keeps a backup)
                   -h, --help            this text
                   -v, --version
 
@@ -189,7 +197,8 @@ public final class Main {
         out.println(Ansi.bold("Knowledge base"));
         List<String> tables = List.of("ports", "listeners", "suid_known", "gtfobins",
                 "capabilities", "caps_known", "hash_formats", "system_users", "groups",
-                "writable_dirs", "service_cves", "kernel_cves", "http_headers");
+                "writable_dirs", "service_cves", "kernel_cves", "http_headers",
+                "windows_signatures", "windows_privileges", "windows_groups");
         for (String name : tables) {
             var table = Kb.table(name);
             out.printf("  %-17s %4d row%s  %s%n", name + ".tsv", table.size(),

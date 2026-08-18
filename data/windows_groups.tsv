@@ -1,0 +1,25 @@
+# Windows groups that grant, or nearly grant, administrative control - matched by the winprivesc
+# detector against `whoami /groups`, `net user`, or the winPEAS groups section.
+#
+# group          match on the display name; the detector lowercases and also matches the RID part
+# severity       OK | INFO | NOTICE | WARN | CRITICAL
+#
+group	severity	description	technique
+Administrators	CRITICAL	You are a local administrator. From a non-elevated token, bypass UAC to get a full-integrity SYSTEM-capable shell.	UAC bypass (fodhelper, etc.) then you own the box
+Domain Admins	CRITICAL	Domain administrator - full control of the Active Directory domain.	you already own the domain
+Enterprise Admins	CRITICAL	Forest-wide administrator.	full forest control
+Backup Operators	CRITICAL	Can back up and restore any file (SeBackup/SeRestore) - read SAM/SYSTEM or write a SYSTEM binary.	reg save HKLM\SAM, then secretsdump
+Server Operators	CRITICAL	Can manage services on domain controllers - reconfigure a service binary to run as SYSTEM.	sc config a service's binPath
+Print Operators	WARN	Can load printer drivers (SeLoadDriver) - a route to kernel code execution.	load an exploitable driver
+Account Operators	WARN	Can manage most domain accounts (not admins) - a strong AD foothold.	add/modify accounts you control
+DnsAdmins	CRITICAL	Can load an arbitrary DLL into the DNS service, which runs as SYSTEM on a DC.	dnscmd to load a malicious DLL
+Hyper-V Administrators	CRITICAL	Full control of VMs - effectively host-level access.	abuse VM management for host access
+Remote Desktop Users	INFO	Can log in over RDP. Not privilege on its own, but useful access.	rdp in with known creds
+Remote Management Users	NOTICE	Can use WinRM (PowerShell Remoting) to this host.	evil-winrm with creds
+Distributed COM Users	NOTICE	Can launch/activate DCOM objects - some lead to lateral movement or local escalation.	DCOM lateral techniques
+Event Log Readers	NOTICE	Read the event logs - recon, and sometimes credentials logged in plaintext.	grep the logs for creds
+Group Policy Creator Owners	WARN	Can create/edit GPOs - a powerful AD escalation if linked to privileged OUs.	abuse a linked GPO
+Administrator	INFO	The literal Administrator account name appearing in a groups/users list - note, not itself a group membership.	-
+Users	OK	The standard Users group. Normal, non-privileged.	-
+Authenticated Users	OK	Any authenticated principal. Normal.	-
+Everyone	OK	Everyone. Normal; only interesting when it appears in a permissive ACL.	-

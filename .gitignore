@@ -2,6 +2,9 @@
 build/
 silverdetector.jar
 
+# Backups written by `--update` before it swaps in new files.
+.backups/
+
 # Editor and OS noise
 *.swp
 *~

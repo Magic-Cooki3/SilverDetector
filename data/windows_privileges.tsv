@@ -1,0 +1,36 @@
+# Windows token privileges (whoami /priv, or the winPEAS token section) and how each is abused.
+# The winprivesc detector pulls the SeXxxPrivilege token off a line, looks it up here, and reads
+# the Enabled/Disabled state from the same line. Many service accounts (IIS, MSSQL) hold the
+# impersonate privileges - those are the bread-and-butter SYSTEM escalations.
+#
+# severity  OK | INFO | NOTICE | WARN | CRITICAL
+# technique short name of the attack a learner can go read up on
+#
+privilege	severity	technique	description
+SeImpersonatePrivilege	CRITICAL	Potato (PrintSpoofer/JuicyPotato/GodPotato)	Impersonate a client token. The classic service-account-to-SYSTEM path: coerce a SYSTEM auth and impersonate it. IIS/MSSQL/service accounts usually have this.
+SeAssignPrimaryTokenPrivilege	CRITICAL	Potato / CreateProcessAsUser	Assign a primary token to a new process - same SYSTEM escalation as SeImpersonate, via the Potato family.
+SeTcbPrivilege	CRITICAL	act as part of the OS	Forge a token that includes SYSTEM/any group. Effectively full compromise.
+SeCreateTokenPrivilege	CRITICAL	NtCreateToken	Build an arbitrary access token (add SYSTEM/Administrators) and spawn a process with it.
+SeLoadDriverPrivilege	CRITICAL	load a vulnerable driver (Capcom/EoP)	Load a kernel driver. Load a known-exploitable signed driver and get ring-0 code execution.
+SeBackupPrivilege	CRITICAL	raw file read (robocopy /b, reg save)	Read ANY file ignoring its ACL - SAM, SYSTEM, NTDS.dit - then extract hashes offline (secretsdump).
+SeRestorePrivilege	CRITICAL	arbitrary file/registry write	Write ANY file or registry key - replace a service binary or utilman.exe/sethc.exe, or edit a service's ImagePath, for SYSTEM.
+SeTakeOwnershipPrivilege	CRITICAL	takeown + icacls	Take ownership of any securable object, then grant yourself full control and tamper with a SYSTEM binary or key.
+SeDebugPrivilege	CRITICAL	dump/inject LSASS	Open any process. Dump LSASS for credentials (procdump/mimikatz) or inject into a SYSTEM process.
+SeManageVolumePrivilege	CRITICAL	SeManageVolumeExploit / raw volume read	Full access to a volume: write anywhere (DLL hijack a SYSTEM service) and read raw sectors of SAM/SYSTEM, bypassing file ACLs.
+SeRelabelPrivilege	WARN	integrity-label abuse	Change the integrity label of objects - can be chained to tamper with higher-integrity resources.
+SeEnableDelegationPrivilege	WARN	Kerberos delegation (AD)	Configure accounts as trusted for delegation - an Active Directory escalation primitive.
+SeSecurityPrivilege	NOTICE	clear/manage the security log	Manage auditing and the Security event log - cover tracks, and read some restricted objects.
+SeSystemEnvironmentPrivilege	NOTICE	firmware/EFI variables	Modify firmware environment values; niche, occasionally a persistence/EoP primitive.
+SeAuditPrivilege	NOTICE	generate audit records	Write to the security audit log; can be used to confuse monitoring.
+SeMachineAccountPrivilege	NOTICE	add computer accounts (AD)	Add machine accounts to the domain - useful in several AD attack chains.
+SeShutdownPrivilege	INFO	-	Shut down the machine. Not an escalation on its own.
+SeRemoteShutdownPrivilege	INFO	-	Shut down the machine remotely. Not an escalation on its own.
+SeChangeNotifyPrivilege	OK	-	Bypass traverse checking. Held by everyone; benign.
+SeIncreaseWorkingSetPrivilege	OK	-	Grow a process working set. Default and benign.
+SeTimeZonePrivilege	OK	-	Change the time zone. Default and benign.
+SeUndockPrivilege	OK	-	Undock a laptop. Benign.
+SeCreateGlobalPrivilege	OK	-	Create global objects. Default for services; benign by itself.
+SeIncreaseQuotaPrivilege	OK	-	Adjust process memory quotas. Benign.
+SeCreatePagefilePrivilege	INFO	-	Create a pagefile. Administrative but not an escalation primitive by itself.
+SeProfileSingleProcessPrivilege	INFO	-	Profile a single process. Low value on its own.
+SeSystemProfilePrivilege	INFO	-	Profile system performance. Low value on its own.

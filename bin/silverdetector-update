@@ -1,0 +1,124 @@
+#!/bin/sh
+# silverdetector self-updater. Not called directly - the launcher runs a COPY of this script
+# (from a temp dir) so it can safely replace the whole install, bin/ included.
+#
+#   usage: silverdetector-update <install-root> <zip-url-or-path>
+#
+# Accepts a GitHub zip URL (Code -> Download ZIP, or a release/branch .zip link) or a local
+# .zip path. It downloads, verifies the archive really is a SilverDetector tree, backs up the
+# current install, swaps in the new files, and rebuilds the jar. Your personal overrides in
+# ~/.config/silverdetector/data are never touched.
+set -eu
+
+root=${1:-}
+source=${2:-}
+if [ -z "$root" ] || [ -z "$source" ]; then
+    echo "silverdetector-update: need <install-root> <zip-url-or-path>" >&2
+    exit 2
+fi
+
+if [ ! -w "$root" ]; then
+    echo "update: install root is not writable: $root" >&2
+    echo "        re-run with enough privileges, or reinstall to a writable location." >&2
+    exit 2
+fi
+
+work=$(mktemp -d "${TMPDIR:-/tmp}/silverdetector-update.XXXXXX")
+cleanup() { rm -rf "$work"; }
+trap cleanup EXIT INT TERM
+
+zip=$work/update.zip
+
+# --- 1. obtain the zip ---------------------------------------------------------------
+case $source in
+    http://*|https://*)
+        echo "update: downloading $source"
+        if command -v curl >/dev/null 2>&1; then
+            curl -fL --retry 3 -o "$zip" "$source" || { echo "update: download failed" >&2; exit 1; }
+        elif command -v wget >/dev/null 2>&1; then
+            wget -q -O "$zip" "$source" || { echo "update: download failed" >&2; exit 1; }
+        else
+            echo "update: need curl or wget to fetch a URL" >&2
+            exit 2
+        fi
+        ;;
+    *)
+        if [ ! -f "$source" ]; then
+            echo "update: no such file: $source" >&2
+            exit 2
+        fi
+        cp "$source" "$zip"
+        ;;
+esac
+
+# --- 2. unzip (unzip, then jar, then python as fallbacks) ----------------------------
+extract=$work/extract
+mkdir -p "$extract"
+if command -v unzip >/dev/null 2>&1; then
+    unzip -q "$zip" -d "$extract" || { echo "update: unzip failed (corrupt archive?)" >&2; exit 1; }
+elif command -v jar >/dev/null 2>&1; then
+    ( cd "$extract" && jar xf "$zip" ) || { echo "update: 'jar xf' failed" >&2; exit 1; }
+elif command -v python3 >/dev/null 2>&1; then
+    python3 -m zipfile -e "$zip" "$extract" || { echo "update: python unzip failed" >&2; exit 1; }
+else
+    echo "update: need one of unzip / jar / python3 to extract the archive" >&2
+    exit 2
+fi
+
+# --- 3. find the SilverDetector tree inside the archive ------------------------------
+# A GitHub zip wraps everything in one top folder (e.g. SilverDetector-main/), so look one and
+# two levels down for the directory that actually contains build.sh + src/silverdetector.
+newroot=""
+for candidate in "$extract" "$extract"/*/ "$extract"/*/*/; do
+    [ -d "$candidate" ] || continue
+    if [ -f "$candidate/build.sh" ] && [ -d "$candidate/src/silverdetector" ]; then
+        newroot=$(CDPATH='' cd -- "$candidate" && pwd)
+        break
+    fi
+done
+if [ -z "$newroot" ]; then
+    echo "update: that archive does not look like a SilverDetector checkout" >&2
+    echo "        (no build.sh + src/silverdetector inside it). Nothing changed." >&2
+    exit 1
+fi
+
+# --- 4. back up the current install --------------------------------------------------
+ts=$(date +%Y%m%d-%H%M%S)
+backupdir=$root/.backups
+mkdir -p "$backupdir"
+backup=$backupdir/backup-$ts.tgz
+( cd "$root" && tar czf "$backup" \
+    src data bin build.sh test.sh docs README.md 2>/dev/null ) || true
+echo "update: backed up the current install to $backup"
+
+# --- 5. swap in the new files --------------------------------------------------------
+# Replace whole directories, then the top-level scripts. ~/.config overrides are elsewhere and
+# stay put. This script is running from a temp copy, so replacing bin/ underneath us is safe.
+for dir in src data docs; do
+    if [ -d "$newroot/$dir" ]; then
+        rm -rf "$root/$dir"
+        cp -a "$newroot/$dir" "$root/"
+    fi
+done
+for file in build.sh test.sh README.md .gitignore; do
+    [ -f "$newroot/$file" ] && cp -a "$newroot/$file" "$root/"
+done
+# bin last, and file-by-file so a running launcher is replaced atomically per file.
+if [ -d "$newroot/bin" ]; then
+    cp -a "$newroot/bin/." "$root/bin/"
+fi
+chmod +x "$root/bin/"* "$root/build.sh" "$root/test.sh" 2>/dev/null || true
+
+# --- 6. rebuild ----------------------------------------------------------------------
+echo "update: rebuilding..."
+if ( cd "$root" && ./build.sh >/dev/null 2>&1 ); then
+    version=$(java -jar "$root/silverdetector.jar" --version 2>/dev/null || echo "silverdetector")
+    echo "update: done - now running $version"
+    echo "update: (previous install saved at $backup)"
+else
+    echo "update: the new code did not build. Rolling back from $backup ..." >&2
+    ( cd "$root" && tar xzf "$backup" ) && ( cd "$root" && ./build.sh >/dev/null 2>&1 ) \
+        && echo "update: rolled back to the previous working install." >&2 \
+        || echo "update: rollback also failed - restore by hand from $backup" >&2
+    exit 1
+fi

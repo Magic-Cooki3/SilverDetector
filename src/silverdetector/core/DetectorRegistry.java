@@ -17,6 +17,7 @@ import silverdetector.detect.ShadowDetector;
 import silverdetector.detect.SmbDetector;
 import silverdetector.detect.SudoDetector;
 import silverdetector.detect.WindowsFoldersDetector;
+import silverdetector.detect.WindowsPrivescDetector;
 
 /**
  * The list of everything SilverDetector knows how to read.
@@ -33,6 +34,7 @@ public final class DetectorRegistry {
     public static List<Detector> all() {
         List<Detector> detectors = new ArrayList<>();
 
+        detectors.add(new WindowsPrivescDetector()); // winPEAS / whoami /priv / Windows enum
         detectors.add(new SetuidDetector());        // find / -perm -4000 (and -2000)
         detectors.add(new GroupsDetector());        // id
         detectors.add(new SudoDetector());          // sudo -l

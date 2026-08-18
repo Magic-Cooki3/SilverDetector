@@ -35,6 +35,30 @@ else
 fi
 export SILVERDETECTOR_COLOR
 
+# --- self-update: silverdetector --update <zip-url-or-path> ---------------------------
+# Intercepted here, before anything touches the jar, so it also works when the current build
+# is broken. Runs a COPY of the updater from a temp dir so it can replace the whole install
+# (bin/ included) without corrupting the script it is executing from.
+if [ $# -ge 1 ] && { [ "$1" = "--update" ] || [ "$1" = "update" ]; }; then
+    shift
+    src=${1:-}
+    if [ -z "$src" ]; then
+        echo "usage: silverdetector --update <github-zip-url | path/to.zip>" >&2
+        echo "example: silverdetector --update https://github.com/Magic-Cooki3/SilverDetector/archive/refs/heads/main.zip" >&2
+        exit 2
+    fi
+    updater=$bindir/silverdetector-update
+    if [ ! -f "$updater" ]; then
+        echo "silverdetector: updater script missing ($updater)" >&2
+        exit 2
+    fi
+    tmpupd=$(mktemp "${TMPDIR:-/tmp}/silverdetector-upd.XXXXXX") || exit 2
+    cp "$updater" "$tmpupd"
+    trap 'rm -f "$tmpupd"' EXIT INT TERM
+    sh "$tmpupd" "$root" "$src"
+    exit $?
+fi
+
 if ! command -v java >/dev/null 2>&1; then
     echo "silverdetector: java not found - install a JRE/JDK (pacman -S jdk-openjdk)" >&2
     exit 2
@@ -115,6 +139,8 @@ cat > "$paste_file" <<'HEADER'
 #   curl -i http://host              HTTP headers, methods, server-version CVEs
 #   (FTP banners)                    FTP version -> CVEs, anonymous login
 #   ss -tulpn / netstat / nmap       listening ports and services
+#   winPEAS output / whoami /priv    Windows privesc: tokens, services, creds (checklist)
+#   linPEAS output                   routed to the Linux checks above
 #
 # Paste more than one of them at a time if you like - each is reported separately.
 

@@ -15,6 +15,6 @@ min	max	cve	name	severity	description
 4.4	4.13.9	CVE-2017-16995	eBPF sign-extension	CRITICAL	eBPF verifier sign-extension flaw gives arbitrary kernel read/write when unprivileged BPF is allowed (kernel.unprivileged_bpf_disabled=0).
 5.1	5.13	CVE-2021-3490	eBPF ALU32 bounds	CRITICAL	eBPF verifier 32-bit bounds bug - kernel read/write and root when unprivileged BPF is enabled.
 5.14	6.3.1	CVE-2023-32233	nf_tables use-after-free	CRITICAL	Netfilter nf_tables use-after-free reachable from an unprivileged user namespace - local root on many recent distros.
-5.1	5.19	CVE-2022-2588	cls_route double-free	HIGH	Route filter double-free, weaponised with the DirtyCred technique for local root across a wide kernel range.
+5.1	5.19	CVE-2022-2588	cls_route double-free	WARN	Route filter double-free, weaponised with the DirtyCred technique for local root across a wide kernel range.
 2.6.39	3.2.1	CVE-2012-0056	mempodipper	CRITICAL	/proc/pid/mem write validation bug - a classic one-shot local root on older kernels.
-5.8	6.1	CVE-2022-32250	nf_tables UAF	HIGH	Another nf_tables use-after-free giving local root from a user namespace; distro exploits published.
+5.8	6.1	CVE-2022-32250	nf_tables UAF	WARN	Another nf_tables use-after-free giving local root from a user namespace; distro exploits published.

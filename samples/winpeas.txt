@@ -1,0 +1,41 @@
+                     ((,.,/((((((((((((((((((((/,     WinPEAS-ng
+   ANTIVIRUS: Windows Defender
+   [X] Defender Real-Time Protection is disabled
+
+╔══════════╣ System Information
+    Microsoft Windows [Version 10.0.19042.1288]
+    [+] AlwaysInstallElevated set to 1 in HKLM and HKCU!
+
+╔══════════╣ Checking WDigest
+    UseLogonCredential    REG_DWORD    0x1
+
+╔══════════╣ LSA Protection
+    RunAsPPL    REG_DWORD    0x0
+
+╔══════════╣ Looking for AutoLogon credentials
+    DefaultUserName               REG_SZ    Administrator
+    DefaultPassword               REG_SZ    SuperSecret123!
+
+╔══════════╣ Services Information
+    UnquotedPath Service: C:\Program Files\Vuln Service\service.exe
+    [!] The path is unquoted and a folder is writable
+
+╔══════════╣ Interesting Services -non Microsoft-
+    LOGReader(LOG File Reader)["C:\Program Files\LOG Reader\logreader.exe"] - Autoload
+    You can modify this service: SERVICE_ALL_ACCESS for BUILTIN\Users
+
+╔══════════╣ WSUS
+    [+] WUServer = http://wsus.corp.local:8530
+
+╔══════════╣ PowerShell Settings
+    PS history file: C:\Users\bob\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt
+
+╔══════════╣ Searching known files that can contain creds
+    C:\Windows\Panther\Unattend.xml
+    C:\ProgramData\Groups.xml  (cpassword found)
+    C:\Windows\repair\SAM
+    C:\inetpub\wwwroot\web.config
+
+╔══════════╣ Current Token privileges
+    SeImpersonatePrivilege        Enabled
+    SeBackupPrivilege             Disabled
