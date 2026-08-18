@@ -1,0 +1,22 @@
+# Active Directory / Windows credential material, keyed on the structure of the hash string.
+# The `adhash` detector matches each `pattern` (a case-insensitive Java regex) against every line,
+# and for every hash it recognises it prints what it is, whether you should crack it or just use
+# it (pass-the-hash) or relay it, and the exact hashcat -m / john --format to run - so "I captured
+# a hash" becomes a command you can run.
+#
+# This is the AD counterpart to hash_formats.tsv (crypt hashes). ADD YOUR OWN: append a row.
+# `hashcat` / `john` name the cracking mode; the detector builds the command line from them.
+# `detail` is the explanation, `next` the attack step beyond cracking (PtH, relay, forge).
+#
+# id             pattern    name    severity  hashcat  john  detail  next
+id	pattern	name	severity	hashcat	john	detail	next
+kerberoast_rc4	\$krb5tgs\$23\$	Kerberoast TGS-REP (RC4 / etype 23)	CRITICAL	13100	krb5tgs	A service ticket encrypted with the service account's RC4 key (derived from its NT hash). Any authenticated domain user can request it, and it cracks offline with no lockout and no touching the target.	crack straight to the account's cleartext password; strong random gMSA/service passwords resist it
+kerberoast_aes	\$krb5tgs\$1[78]\$	Kerberoast TGS-REP (AES / etype 17-18)	CRITICAL	19700	krb5tgs-aes	A kerberoast ticket using AES (etype 17 = AES128, mode 19600; etype 18 = AES256, mode 19700). Same offline attack as RC4 but slower to crack.	if the account allows it, request etype 23 (RC4) instead for a faster crack; else hashcat -m 19700
+asrep_rc4	\$krb5asrep\$(23\$|[A-Za-z@])	AS-REP Roast (RC4 / etype 23)	CRITICAL	18200	krb5asrep	An AS-REP for an account with DONT_REQ_PREAUTH set. Because pre-auth is off, it is obtainable with NO credentials at all, and cracks offline to the account's password.	crack it; then remediate by requiring Kerberos pre-authentication on the account
+asrep_aes	\$krb5asrep\$1[78]\$	AS-REP Roast (AES / etype 17-18)	CRITICAL	19900	krb5asrep-aes	An AS-REP roast hash using AES (etype 17 = mode 19800, etype 18 = mode 19900). Same no-preauth weakness, AES-encrypted.	hashcat -m 19900 (AES256) or -m 19800 (AES128)
+krb_preauth	\$krb5pa\$	Kerberos AS-REQ pre-auth (etype 23)	WARN	7500	krb5pa-md5	Captured Kerberos pre-authentication timestamp data (from a PCAP or a rogue KDC). It is encrypted with the user's key and cracks offline to their password.	hashcat -m 7500 against a wordlist
+netntlmv2	[^\s:]+::[^:]*:[0-9a-fA-F]{16}:[0-9a-fA-F]{32}:[0-9a-fA-F]{20,}	NetNTLMv2 (Responder / relay capture)	CRITICAL	5600	netntlmv2	A NetNTLMv2 response, typically captured by Responder or ntlmrelayx via LLMNR/NBT-NS/mDNS poisoning. It is NOT the NT hash and cannot be passed - crack it, or relay it live.	relaying beats cracking: ntlmrelayx.py -t <host> if SMB signing is off; otherwise hashcat -m 5600
+netntlmv1	[^\s:]+::[^:]*:[0-9a-fA-F]{48}:[0-9a-fA-F]{48}:[0-9a-fA-F]{16}	NetNTLMv1 (weak)	CRITICAL	5500	netntlm	A NetNTLMv1 response. With a fixed server challenge (1122334455667788) its DES can be broken on crack.sh to recover the NT hash directly, then pass-the-hash.	downgrade clients to NetNTLMv1 (Responder --lm / mitm6), submit to crack.sh, then PtH; or hashcat -m 5500
+ntlm_hash	(aad3b435b51404eeaad3b435b51404ee:[0-9a-fA-F]{32}|:[0-9a-fA-F]{32}:[0-9a-fA-F]{32}:::)	NTLM hash (NTDS.dit / SAM dump)	CRITICAL	1000	nt	An NT hash from a SAM or NTDS.dit dump, in secretsdump's user:rid:LM:NT::: form. You usually don't crack it - pass-the-hash authenticates with the hash itself. aad3b435... is the empty-LM constant.	pass-the-hash: nxc smb <t> -u user -H <NT> ; crack (hashcat -m 1000) only if you need the cleartext for reuse
+dcc2	\$DCC2\$	Domain Cached Credentials 2 (mscash2)	WARN	2100	mscash2	A cached domain-logon verifier from a workstation's registry (so a user can log in offline). It CANNOT be passed - only cracked - and is deliberately slow by design.	hashcat -m 2100 with a targeted wordlist; slow, so don't expect fast results
+dcc1	\$DCC\$|M\$\S+#[0-9a-fA-F]{32}	Domain Cached Credentials (mscash)	WARN	1100	mscash	The older cached-logon verifier (pre-Vista). Like DCC2 it can only be cracked, not passed.	hashcat -m 1100

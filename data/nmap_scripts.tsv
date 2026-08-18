@@ -32,6 +32,13 @@ smb-security-mode	info	NOTICE	SMB signing config	Shows message signing; "signing
 smb2-security-mode	info	NOTICE	SMB2 signing config	As smb-security-mode, for SMB2/3.	ntlmrelayx.py if signing is not required
 smb-enum-shares	info	NOTICE	SMB shares enumerable	Shares are listable - check each for read/write access.	smbmap -H <host>
 smb-enum-users	info	NOTICE	SMB users enumerable	Account names are enumerable - feed a password spray or AS-REP roast.	enum4linux -a <host> ; kerbrute
+smb-enum-domains	info	NOTICE	SMB domain / password policy	Reveals the domain(s), password policy and lockout threshold - the numbers that decide how safely you can spray.	nxc smb <host> --pass-pol ; spray within the lockout window
+smb-enum-groups	info	NOTICE	SMB groups enumerable	Lists domain/local groups and members - find who is in Domain Admins and the nested privileged groups.	net rpc group members "Domain Admins" -U dom/user
+smb-enum-sessions	info	NOTICE	SMB active sessions	Shows who is logged on where - session data is what BloodHound uses to plot a path to Domain Admin.	feed sessions into BloodHound; hunt where a DA is logged in
+krb5-enum-users	info	NOTICE	Kerberos user enumeration	Valid domain usernames confirmed over Kerberos pre-auth (no credentials, and quiet). The list feeds spraying and AS-REP roasting.	kerbrute userenum -d dom --dc <host> users.txt
+ldap-rootdse	info	INFO	LDAP RootDSE disclosure	The RootDSE gives the domain/forest naming contexts and DC name unauthenticated - your LDAP search base and a domain confirmation.	ldapsearch -x -H ldap://<host> -s base ; then query with -b the naming context
+ldap-search	info	NOTICE	LDAP directory dump	nmap read directory objects over LDAP (often anonymous). Users, computers and attributes: SPNs, UAC flags, descriptions.	ldapsearch -x -b "DC=corp,DC=local" ; grep servicePrincipalName / userAccountControl
+rdp-ntlm-info	info	INFO	RDP NTLM info disclosure	The RDP NLA handshake leaks the hostname, domain (NetBIOS + FQDN), and OS build without authentication.	note the domain/host; feed the build to a version search
 http-methods	info	NOTICE	HTTP methods allowed	Lists the enabled methods; PUT / DELETE / TRACE among them are dangerous.	test PUT for a web-shell upload
 http-title	info	INFO	HTTP page title	The title often names the app and version - a lead for a version-specific exploit.	identify the app; search its CVEs
 http-robots.txt	info	INFO	robots.txt disallow list	Disallowed paths frequently point at admin panels and hidden endpoints.	browse each disallowed path

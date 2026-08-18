@@ -270,6 +270,44 @@ check "a NOT VULNERABLE script is not flagged" \
 check "a plain port scan does not run nmapscripts" silent_about "\[nmapscripts\]" samples/nmap.txt
 
 echo
+echo "active directory (enumeration & attack tooling)"
+check "netexec output picks the ad detector"      says "read with: ad" samples/netexec.txt
+check "a Pwn3d! host is critical"                 says "Local admin / Pwn3d!" samples/netexec.txt
+check "valid domain credentials are critical"     says "Valid domain credentials" samples/netexec.txt
+check "a lockout during spraying warns"           says "Account lockout hit" samples/netexec.txt
+check "ldapsearch picks the ad detector"          says "\[ad\]" samples/ldapsearch.txt
+check "an SPN account is kerberoastable"          says "kerberoastable" samples/ldapsearch.txt
+check "constrained delegation is critical"        says "Constrained delegation (S4U)" samples/ldapsearch.txt
+check "MachineAccountQuota is flagged"            says "MachineAccountQuota" samples/ldapsearch.txt
+check "bloodhound GenericAll is critical"         says "GenericAll over an object" samples/bloodhound.txt
+check "bloodhound DCSync rights is critical"      says "DCSync rights" samples/bloodhound.txt
+check "RBCD is recognised"                        says "Resource-based constrained delegation" samples/bloodhound.txt
+check "shadow credentials edge is flagged"        says "Shadow Credentials" samples/bloodhound.txt
+check "RBCD is not double-read as constrained"    silent_about "Constrained delegation (S4U)" samples/bloodhound.txt
+check "certipy ESC1 is critical"                  says "ESC1 - enrollee supplies" samples/certipy.txt
+check "certipy ESC8 relay is critical"            says "ESC8 - NTLM relay" samples/certipy.txt
+check "kerberoasting is recognised"               says "Kerberoasting" samples/kerberoast.txt
+check "AS-REP roasting is recognised"             says "AS-REP roasting" samples/kerberoast.txt
+check "a domain credential dump is critical"      says "Domain credential dump" samples/secretsdump.txt
+check "responder captures a NetNTLM hash"         says "Responder poisoning captured" samples/responder.txt
+check "ad does not fire on a plain ss table"      silent_about "\[ad\]" samples/ss-tulpn.txt
+check "ad does not fire on winPEAS output"        silent_about "\[ad\]" samples/winpeas.txt
+
+echo
+echo "ad credential material (adhash -> crack modes)"
+check "a kerberoast ticket picks the adhash detector" says "\[adhash\]" samples/kerberoast.txt
+check "a TGS-REP ticket maps to hashcat 13100"    says "hashcat -m 13100" samples/kerberoast.txt
+check "an AS-REP ticket maps to hashcat 18200"    says "hashcat -m 18200" samples/kerberoast.txt
+check "NTDS NT hashes map to hashcat 1000"        says "hashcat -m 1000" samples/secretsdump.txt
+check "NT hashes recommend pass-the-hash"         says "pass-the-hash" samples/secretsdump.txt
+check "the krbtgt hash is flagged for golden tickets" says "forges Golden Tickets" samples/secretsdump.txt
+check "a NetNTLMv2 capture maps to hashcat 5600"  says "hashcat -m 5600" samples/responder.txt
+check "adhash counts the hashes it captured"      says "5 hashes captured" samples/secretsdump.txt
+check "adhash does not fire on /etc/shadow"       silent_about "\[adhash\]" samples/etc-shadow.txt
+check "a bare krb5tgs paste is understood" \
+    sh -c 'printf "\$krb5tgs\$23\$*svc\$CORP\$MSSQLSvc/h*\$abc\$def123456789abcdef\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "hashcat -m 13100"'
+
+echo
 echo "input handling"
 printf '22\n80\n443\n8080\n' > "$tmp/bare.txt"
 check "a bare list of ports is understood"       says "tcp/443 — https" "$tmp/bare.txt"

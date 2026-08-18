@@ -164,7 +164,11 @@ The shipped detectors each show a technique you will probably want:
 - **`PortsDetector`** — one input, many formats (`ss`/`netstat`/`nmap`/`lsof`/bare). See how
   `Sockets` normalises them all into one record before analysis.
 - **`ShadowDetector`** — a shared helper (`CryptHash`) and a lookup table (`hash_formats.tsv`)
-  turning a raw hash into an actionable cracking mode.
+  turning a raw hash into an actionable cracking mode. **`AdHashDetector`** does the same job for
+  AD credential material (kerberoast / AS-REP tickets, NetNTLM captures, NTDS/SAM NT hashes): a
+  regex-per-row table (`ad_hashes.tsv`) maps each hash to its `hashcat -m` mode, and the detector
+  builds the command line — copy it when "recognise a hash, print how to crack (or pass, or
+  relay) it" is the job.
 - **`PasswdDetector`** — a cross-line pass (duplicate UID detection) before per-line findings.
 - **`SudoDetector`** — a small stateful parser (Defaults block vs. command block), reuse of
   another detector's table (`gtfobins.tsv`), and version-range CVE checks in `SudoVersion`.
@@ -179,7 +183,10 @@ The shipped detectors each show a technique you will probably want:
   (`windows_signatures.tsv`, `linux_signatures.tsv`). This is the pattern to copy when "match a
   lot of independent tells in a big blob" is the job (a winPEAS/linPEAS-style dump). Adding a
   check is one TSV row; the code never changes. `Signatures` (load / anyMatch / scan / clean,
-  including ANSI stripping) is the reusable core.
+  including ANSI stripping) is the reusable core. **`AdDetector`** is a third detector on the same
+  engine, over `ad_signatures.tsv` — Active Directory enum/attack tooling (NetExec, BloodHound,
+  Certipy, Impacket, Responder, ...) — and shows how to gate `sniff` on a tool-name allowlist so a
+  single stray match doesn't claim an unrelated paste.
 - **`NmapScriptsDetector` + `nmap_scripts.tsv`** — a *stateful* reader: it tracks the current NSE
   script id across `|` lines and fires on a later `State: VULNERABLE`, with a keyed table for the
   known scripts and a generic catch for the rest. Copy it when the meaning of a line depends on an

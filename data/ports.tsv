@@ -70,7 +70,9 @@ port	proto	service	risk	description
 593	tcp	http-rpc-epmap	dangerous	RPC over HTTP endpoint mapper. Windows infrastructure.
 623	udp	ipmi	dangerous	IPMI/BMC (iDRAC, iLO). Out-of-band server management with a long history of authentication bypasses.
 631	any	ipp	local	CUPS printing. Normal bound to localhost; exposed it advertises your printers and has had RCE bugs.
-636	tcp	ldaps	sensitive	LDAP over TLS. Directory service, encrypted.
+636	tcp	ldaps	sensitive	LDAP over TLS. Directory service, encrypted. On a domain controller, the relay target for LDAP(S) attacks (RBCD, Shadow Credentials) when channel binding is off.
+3269	tcp	ldaps-gc	sensitive	Active Directory global catalog over TLS. This host is a domain controller.
+9389	tcp	adws	sensitive	Active Directory Web Services (ADWS). Backs the PowerShell AD module and SOAPHound-style enumeration; its presence confirms a domain controller.
 646	any	ldp	sensitive	MPLS label distribution. Router infrastructure.
 777	tcp	multiling-http	sensitive	Rarely legitimate. Sometimes used by backdoors.
 789	tcp	redlion-crimson	sensitive	Industrial HMI protocol.
