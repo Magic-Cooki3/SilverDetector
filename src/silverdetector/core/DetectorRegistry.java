@@ -5,8 +5,11 @@ import java.util.Comparator;
 import java.util.List;
 
 import silverdetector.detect.CapabilitiesDetector;
+import silverdetector.detect.PasswdDetector;
 import silverdetector.detect.PortsDetector;
 import silverdetector.detect.SetuidDetector;
+import silverdetector.detect.ShadowDetector;
+import silverdetector.detect.SudoDetector;
 import silverdetector.detect.WindowsFoldersDetector;
 
 /**
@@ -25,8 +28,11 @@ public final class DetectorRegistry {
         List<Detector> detectors = new ArrayList<>();
 
         detectors.add(new SetuidDetector());        // find / -perm -4000 (and -2000)
+        detectors.add(new SudoDetector());          // sudo -l
         detectors.add(new PortsDetector());         // ss / netstat / nmap / lsof
         detectors.add(new CapabilitiesDetector());  // getcap -r /
+        detectors.add(new PasswdDetector());        // cat /etc/passwd
+        detectors.add(new ShadowDetector());        // cat /etc/shadow
 
         // Worked example from docs/ADDING_DETECTORS.md. Uncomment to switch it on.
         // detectors.add(new WindowsFoldersDetector());

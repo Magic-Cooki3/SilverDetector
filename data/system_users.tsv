@@ -1,0 +1,49 @@
+# Well-known system account names, so /etc/passwd findings can say what an account is for
+# instead of just "system account". Not exhaustive and not a security boundary - it only
+# improves the labels. A system account NOT in here is fine; it is the ones with a login
+# shell, UID 0, or a password that the detector actually flags.
+#
+name	purpose	description
+root	superuser	UID 0, the administrator account. Its shell is expected to be interactive.
+daemon	system daemons	Generic unprivileged account for daemons that do not need their own user.
+bin	legacy binaries owner	Historical owner of system binaries. No login.
+sys	legacy	Historical system account. No login.
+sync	sync-on-login	Its shell is /bin/sync, which just flushes disks and logs out - not a real login.
+games	games	Owns game score files. No login.
+man	manual pages	Owns cached manual pages. No login.
+lp	printing	Line-printer subsystem account.
+mail	mail spool	Owns the local mail spool.
+news	usenet	Legacy news subsystem.
+uucp	uucp	Legacy Unix-to-Unix copy subsystem.
+proxy	proxy	Generic proxy-daemon account.
+www-data	web server	The account Apache/nginx workers run as on Debian/Ubuntu. A web shell runs as this user.
+http	web server	The account the web server runs as on Arch.
+backup	backups	Owns backup files.
+list	mailing lists	Mailman and similar.
+irc	irc daemon	Legacy IRC daemon account.
+gnats	bug reporting	Legacy GNATS account.
+nobody	unprivileged	UID 65534, the account with (almost) no rights. Used to drop privilege.
+nobody4	unprivileged	Solaris-style nobody.
+systemd-network	systemd	systemd-networkd's account.
+systemd-resolve	systemd	systemd-resolved's account.
+systemd-timesync	systemd	systemd-timesyncd's account.
+systemd-coredump	systemd	Owns saved core dumps.
+messagebus	D-Bus	The system D-Bus daemon's account.
+sshd	ssh privilege separation	The unprivileged account sshd drops to for network-facing code. It must have no shell.
+_apt	apt	APT's sandbox account on Debian/Ubuntu.
+tss	TPM	TPM2 software stack account.
+polkitd	polkit	polkit daemon account.
+avahi	mdns	Avahi daemon account.
+colord	colour management	Colour-management daemon account.
+geoclue	geolocation	Geolocation daemon account.
+rtkit	realtime	RealtimeKit scheduling helper account.
+dnsmasq	dns/dhcp	dnsmasq daemon account.
+nm-openvpn	networkmanager	NetworkManager's OpenVPN helper account.
+ntp	time sync	NTP daemon account.
+chrony	time sync	chrony daemon account.
+postgres	postgresql	PostgreSQL's account. Owns the database cluster; often has a real shell for admin use.
+mysql	mysql	MySQL/MariaDB's account.
+redis	redis	Redis server account.
+mongodb	mongodb	MongoDB server account.
+git	git hosting	Often a real login account used for git-over-ssh (gitosis/gitolite). A shell here can be intentional.
+nvidia-persistenced	nvidia	NVIDIA persistence daemon account.

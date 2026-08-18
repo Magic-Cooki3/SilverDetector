@@ -1,0 +1,12 @@
+root:$y$j9T$m7Xq0pZ3.kY8vN2wL1oB4/$aWm5nR8sT2uV6xY9zA0bC3dE7fG1hJ4kL6mN9pQ2rS5:19800:0:99999:7:::
+daemon:*:19000:0:99999:7:::
+bin:*:19000:0:99999:7:::
+sys:*:19000:0:99999:7:::
+sync:*:19000:0:99999:7:::
+www-data:!:19000:0:99999:7:::
+sshd:!:19000:0:99999:7:::
+victim:$6$rQ3nT7xK$8fJ2pWqL0mZ9vY1oB3nR6sT2uV5xY8zA1bC4dE7fG0hJ3kL6mN9pQ2rS5tU8wX1yZ4:19800:0:99999:7:::
+olduser:$1$xyz12345$AbCdEfGhIjKlMnOpQrStU.:18000:0:99999:7:::
+legacy:kR8tPq2wXyZ4A:17000:0:99999:7:::
+service:!$6$abc$def123ghi456jkl789mno012pqr345stu678vwx901yz:19000:0:99999:7:::
+backdoor::19900:0:99999:7:::

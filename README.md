@@ -39,13 +39,28 @@ mkdir -p ~/.local/bin && ln -sf "$PWD/bin/silverdetector" ~/.local/bin/silverdet
 
 ## What it reads today
 
+Aimed at the things a purple teamer triages during privilege-escalation enumeration on a Linux
+box — the same list a learner meets working through a CTF or a HackTheBox machine.
+
 | id       | input                                                              | what it tells you |
 |----------|--------------------------------------------------------------------|-------------------|
-| `setuid` | `find / -perm -4000 -ls`, `-perm -2000`, `-perm /6000`, bare paths, `ls -l`, `%m %p` | Which set-id binaries ship with the distro, which are GTFOBins escalation vectors, which are unknown, and which sit somewhere a package would never put one |
-| `ports`  | `ss -tulpn`, `netstat -tulpn`, `nmap` (normal or `-oG`), `lsof -i`, a bare list of ports | What each port is for, whether it is bound to loopback or the whole network, whether the process holding it makes sense |
+| `setuid` | `find / -perm -4000 -ls`, `-perm -2000`, `-perm /6000`, bare paths, `ls -l`, `%m %p` | Which set-id (SUID/SGID) binaries ship with the distro, which are GTFOBins escalation vectors, which are unknown, and which sit somewhere a package would never put one |
+| `sudo`   | `sudo -l`                                                          | The full-root grants, the binaries GTFOBins can turn into a root shell, the `env_keep`/`LD_PRELOAD` holes, the NOPASSWD entries, and version-specific ones (Baron Samedit et al.) — each with the next move spelled out |
+| `passwd` | `cat /etc/passwd`                                                  | A second UID 0 account, a password hash sitting in a world-readable file, an empty password, a service account given a login shell, and which accounts are the human targets |
+| `shadow` | `cat /etc/shadow`                                                  | No-password accounts, weak hash algorithms (MD5/DES), and for every live hash the exact `hashcat -m` / `john --format` to crack it |
 | `caps`   | `getcap -r / 2>/dev/null`                                          | What each capability actually grants, and whether the distro really ships that file with it |
+| `ports`  | `ss -tulpn`, `netstat -tulpn`, `nmap` (normal or `-oG`), `lsof -i`, a bare list of ports | What each port is for, whether it is bound to loopback or the whole network, whether the process holding it makes sense |
 
-Paste more than one at a time if you like — each format is detected and reported separately.
+Paste more than one at a time if you like — each format is detected and reported separately, so
+a whole enumeration dump goes in at once.
+
+### Built to learn from
+
+Every anomaly says *why* it escalates and *what to do next*, not just that it is wrong — a
+GTFOBins pointer for a sudo/SUID binary, the `hashcat`/`john` mode for a hash, the CVE id for a
+vulnerable sudo. Read the report top to bottom and you pick up the tradecraft while you triage.
+It is a red-team learning aid, not an exploit: it recognises and explains, it does not attack
+anything.
 
 ## Reading the report
 
@@ -89,10 +104,16 @@ Every table is a tab-separated file with a header row. Add a row, run again — 
 data/ports.tsv         port -> name, risk class, description
 data/listeners.tsv     process names that change the meaning of a port
 data/suid_known.tsv    set-id binaries a stock install really ships
-data/gtfobins.tsv      binaries that hand out root the moment they are SUID
+data/gtfobins.tsv      binaries that hand out root when SUID or sudo-runnable
 data/capabilities.tsv  what each Linux capability grants
 data/caps_known.tsv    files the distro ships with capabilities
+data/hash_formats.tsv  crypt hash algorithms -> strength + hashcat/john mode
+data/system_users.tsv  well-known /etc/passwd account names
 ```
+
+`gtfobins.tsv` is shared by the `setuid` and `sudo` detectors — add a binary once and both use
+it. `hash_formats.tsv` is where you would add a new hash marker (say a distro's new default) so
+the `shadow` and `passwd` detectors learn its cracking mode.
 
 Your own rows are better kept out of the repo, in
 `~/.config/silverdetector/data/<table>.tsv`. That directory is read last, and a row there
@@ -147,9 +168,10 @@ src/silverdetector/
 
 ## Requirements
 
-A JDK, and nothing else. Built with `--release 17` so the jar runs on anything from 17 up,
-including the OpenJDK 26 on Athena OS. `./build.sh` is the whole build.
+A JDK, and nothing else. Built with `--release 17` — 17 is the baseline the code targets, so the
+jar runs unchanged on JDK 17 and anything newer. `./build.sh` is the whole build; override the
+floor with `SILVERDETECTOR_RELEASE=21 ./build.sh` if you ever need to.
 
 ```sh
-./test.sh             # 48 checks over the samples, detectors and override behaviour
+./test.sh             # 77 checks over the samples, detectors and override behaviour
 ```

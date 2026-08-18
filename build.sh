@@ -23,9 +23,15 @@ fi
 rm -rf build
 mkdir -p build
 
-# --release 17 so the jar also runs on older JDKs than the one that built it.
+# Target Java 17 bytecode. 17 is the baseline this project is written and tested against, so the
+# jar runs unchanged on JDK 17 and anything newer (your OpenJDK 26 included). Override if you
+# ever need a different floor:  SILVERDETECTOR_RELEASE=21 ./build.sh
+release=${SILVERDETECTOR_RELEASE:-17}
+javac_version=$(javac -version 2>&1 | grep -i '^javac' | awk '{print $2}')
+echo "compiling for Java $release (using javac ${javac_version:-unknown})"
+
 find src -name '*.java' > build/sources.txt
-javac --release 17 -Xlint:all -d build @build/sources.txt
+javac --release "$release" -Xlint:all -d build @build/sources.txt
 
 # The .tsv knowledge base rides along inside the jar as a fallback; the copies in data/
 # still win when they are present, which is what makes editing them work without a rebuild.

@@ -156,6 +156,21 @@ cp src/silverdetector/detect/WindowsFoldersDetector.java \
 `--detector <id>` forces yours to run while you are still tuning `sniff`, and `--json` shows
 exactly what it produced without the formatting in the way.
 
+### More examples already in the tree
+
+The shipped detectors each show a technique you will probably want:
+
+- **`CapabilitiesDetector`** — the shortest one. Parse, look up, emit. Start here.
+- **`PortsDetector`** — one input, many formats (`ss`/`netstat`/`nmap`/`lsof`/bare). See how
+  `Sockets` normalises them all into one record before analysis.
+- **`ShadowDetector`** — a shared helper (`CryptHash`) and a lookup table (`hash_formats.tsv`)
+  turning a raw hash into an actionable cracking mode.
+- **`PasswdDetector`** — a cross-line pass (duplicate UID detection) before per-line findings.
+- **`SudoDetector`** — a small stateful parser (Defaults block vs. command block), reuse of
+  another detector's table (`gtfobins.tsv`), and version-range CVE checks in `SudoVersion`.
+
+Copy whichever is closest to your input's shape.
+
 ### Things worth knowing
 
 - **Severity is a ladder, not a label.** `OK → INFO → NOTICE → WARN → CRITICAL`. The process

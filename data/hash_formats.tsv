@@ -1,0 +1,21 @@
+# crypt(5) password hash algorithms, keyed on the $id$ marker.
+# severity is how the hash itself scores - a strong algorithm is OK, a weak one is a finding
+# no matter whose account it is. hashcat/john name the cracking mode so a learner can go
+# straight from "I found a hash" to "here is how you would attack it".
+#
+# id   algo                    severity  hashcat  john             description
+id	algo	severity	hashcat	john	description
+des	DES (traditional crypt)	WARN	1500	descrypt	13-character legacy hash with an 8-character password limit. Falls to a GPU almost instantly - it should not exist on a modern system.
+1	MD5 (crypt)	WARN	500	md5crypt	Old and fast. A commodity GPU tries billions per second, so treat every $1$ hash as already cracked if the password is at all common.
+2	bcrypt	OK	3200	bcrypt	Blowfish-based adaptive hash. Strong; only genuinely weak passwords fall in reasonable time.
+2a	bcrypt	OK	3200	bcrypt	bcrypt (2a). Strong.
+2b	bcrypt	OK	3200	bcrypt	bcrypt (2b), the current OpenBSD default. Strong.
+2x	bcrypt	OK	3200	bcrypt	bcrypt (2x). Strong.
+2y	bcrypt	OK	3200	bcrypt	bcrypt (2y). Strong.
+5	SHA-256 (crypt)	NOTICE	7400	sha256crypt	SHA-256 crypt. Respectable, but noticeably softer against GPUs than SHA-512 or yescrypt.
+6	SHA-512 (crypt)	OK	1800	sha512crypt	The long-standing Linux default. Strong when the password is; the round count still matters.
+7	scrypt	OK	8900	scrypt	Memory-hard hash. Strong.
+y	yescrypt	OK	-	yescrypt	The modern default on Debian 11+, Ubuntu 22.04+ and current Arch. Memory-hard and strong. hashcat has no native mode yet - crack with john --format=yescrypt.
+gy	gost-yescrypt	OK	-	gost-yescrypt	yescrypt with the GOST hash. Strong; crack with john.
+sha1	SHA-1 (crypt)	WARN	101	-	SHA-1 based crypt. Weak by modern standards.
+md5	MD5 (bare)	WARN	0	Raw-MD5	A bare MD5 marker rather than $1$ crypt. Very weak; usually a sign of an application hash that leaked into a system file.

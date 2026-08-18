@@ -1,0 +1,11 @@
+Matching Defaults entries for victim on kali:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin,
+    env_keep+=LD_PRELOAD, pwfeedback
+
+User victim may run the following commands on kali:
+    (root) NOPASSWD: /usr/bin/find
+    (root) /usr/bin/less /var/log/*
+    (ALL : ALL) /usr/bin/systemctl restart myapp
+    (operator) NOPASSWD: /usr/local/bin/backup.sh
+    (ALL, !root) /usr/bin/id
+    (root) NOPASSWD: /usr/bin/apt-get

@@ -95,6 +95,48 @@ check "cap_net_raw on ping is normal"            says "OK     /usr/bin/ping" sam
 check "shipped cap_setuid on newuidmap is fine"  says "OK     /usr/bin/newuidmap" samples/getcap.txt
 
 echo
+echo "sudo -l"
+check "sudo output picks the sudo detector"      says "read with: sudo" samples/sudo-l.txt
+check "sudo does not double-match as passwd"     silent_about "\[passwd\]" samples/sudo-l.txt
+check "NOPASSWD find via sudo is critical"       says "CRIT   sudo root: find" samples/sudo-l.txt
+check "the exploit next-step is shown"           says "next: see GTFOBins entry for 'find'" samples/sudo-l.txt
+check "env_keep LD_PRELOAD is critical"          says "CRIT   Defaults env_keep" samples/sudo-l.txt
+check "good defaults are called normal"          says "OK     Defaults (hardening)" samples/sudo-l.txt
+check "runas negation flags CVE-2019-14287"      says "CVE-2019-14287" samples/sudo-l.txt
+check "(ALL) ALL is a full-root critical" \
+    sh -c 'printf "User x may run the following commands on h:\n    (ALL : ALL) ALL\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "run ANY command"'
+check "Baron Samedit version is flagged" \
+    sh -c 'printf "Sudo version 1.8.31p1\nUser x may run the following commands on h:\n    (root) /usr/bin/vi\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "CVE-2021-3156"'
+check "a patched sudo is not flagged Samedit" \
+    sh -c 'printf "Sudo version 1.9.15p5\nUser x may run the following commands on h:\n    (root) /usr/bin/vi\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -qv "Baron Samedit"'
+check "no sudo rights is reported, not crashed" \
+    sh -c 'printf "User x is not in the sudoers file.  This incident will be reported.\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "no sudo rights"'
+
+echo
+echo "/etc/passwd"
+check "passwd output picks the passwd detector"  says "read with: passwd" samples/etc-passwd.txt
+check "a second UID 0 account is critical"       says "CRIT   toor" samples/etc-passwd.txt
+check "a hash in passwd is critical"             says "HASH is stored in world-readable" samples/etc-passwd.txt
+check "an empty password is critical"            says "CRIT   guest" samples/etc-passwd.txt
+check "a human account is named as a target"     says "INFO   victim" samples/etc-passwd.txt
+check "root itself is normal"                    says "OK     root" samples/etc-passwd.txt
+check "a service account with a shell warns"     says "WARN   backupsvc" samples/etc-passwd.txt
+check "www-data (nologin) is normal"             says "OK     www-data" samples/etc-passwd.txt
+
+echo
+echo "/etc/shadow"
+check "shadow output picks the shadow detector"  says "read with: shadow" samples/etc-shadow.txt
+check "shadow does not double-match as passwd"   silent_about "\[passwd\]" samples/etc-shadow.txt
+check "an empty hash is critical"                says "CRIT   backdoor" samples/etc-shadow.txt
+check "a DES hash is a weak-hash warning"        says "WARN   legacy" samples/etc-shadow.txt
+check "an MD5 hash is a weak-hash warning"       says "WARN   olduser" samples/etc-shadow.txt
+check "a yescrypt hash is normal"                says "OK     root" samples/etc-shadow.txt
+check "a sha512 hash is normal"                  says "OK     victim" samples/etc-shadow.txt
+check "the hashcat mode is shown"                says "hashcat -m 1800" samples/etc-shadow.txt
+check "a locked account is normal"               says "OK     daemon" samples/etc-shadow.txt
+check "reading shadow is itself noted"           says "you are reading the shadow file" samples/etc-shadow.txt
+
+echo
 echo "input handling"
 printf '22\n80\n443\n8080\n' > "$tmp/bare.txt"
 check "a bare list of ports is understood"       says "tcp/443 — https" "$tmp/bare.txt"

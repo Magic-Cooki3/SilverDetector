@@ -1,0 +1,13 @@
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+sshd:x:106:65534::/run/sshd:/usr/sbin/nologin
+postgres:x:114:120:PostgreSQL administrator,,,:/var/lib/postgresql:/bin/bash
+victim:x:1000:1000:victim,,,:/home/victim:/bin/bash
+backupsvc:x:999:999:backup service:/var/backups:/bin/bash
+toor:$6$abcd1234$Xy9zAbCdEf.gHiJkLmNoPqRsTuVwXyZ0123456789aBcDeFgHiJkLmNoPqRsTuVwXyZ012345:0:0:pwned:/root:/bin/bash
+guest::1001:1001:guest account:/home/guest:/bin/bash
+oldroot:x:0:0:legacy:/root:/bin/bash
