@@ -168,8 +168,16 @@ The shipped detectors each show a technique you will probably want:
 - **`PasswdDetector`** — a cross-line pass (duplicate UID detection) before per-line findings.
 - **`SudoDetector`** — a small stateful parser (Defaults block vs. command block), reuse of
   another detector's table (`gtfobins.tsv`), and version-range CVE checks in `SudoVersion`.
+- **`KernelDetector` + `Version` + `ServiceCves`** — the automatic-CVE machinery. `Version`
+  parses a dotted version out of messy text; `ServiceCves`/`kernel_cves.tsv` hold
+  product/version ranges; the detector just parses a version and reports what lands in range.
+  Copy this whenever "recognise a version, name its CVEs" is the job (`ftp`, `smb`, `http` all do).
+- **`SmbDetector`** — carries state across lines (an nmap `smb-vuln-*` script id on one line, its
+  `State: VULNERABLE` on another) and dedupes repeated findings.
 
-Copy whichever is closest to your input's shape.
+Copy whichever is closest to your input's shape. Note how many of these **share a table**: add a
+GTFOBins binary, a writable directory, or a CVE range once and every detector that reads that
+table gets it — that sharing is the point, so prefer extending a table over hard-coding.
 
 ### Things worth knowing
 

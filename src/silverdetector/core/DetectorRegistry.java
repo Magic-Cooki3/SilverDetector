@@ -5,10 +5,16 @@ import java.util.Comparator;
 import java.util.List;
 
 import silverdetector.detect.CapabilitiesDetector;
+import silverdetector.detect.CronDetector;
+import silverdetector.detect.FtpDetector;
+import silverdetector.detect.GroupsDetector;
+import silverdetector.detect.HttpDetector;
+import silverdetector.detect.KernelDetector;
 import silverdetector.detect.PasswdDetector;
 import silverdetector.detect.PortsDetector;
 import silverdetector.detect.SetuidDetector;
 import silverdetector.detect.ShadowDetector;
+import silverdetector.detect.SmbDetector;
 import silverdetector.detect.SudoDetector;
 import silverdetector.detect.WindowsFoldersDetector;
 
@@ -28,11 +34,17 @@ public final class DetectorRegistry {
         List<Detector> detectors = new ArrayList<>();
 
         detectors.add(new SetuidDetector());        // find / -perm -4000 (and -2000)
+        detectors.add(new GroupsDetector());        // id
         detectors.add(new SudoDetector());          // sudo -l
+        detectors.add(new SmbDetector());           // smbclient -L / enum4linux / nmap smb-*
+        detectors.add(new FtpDetector());           // FTP banners  (auto CVE match)
         detectors.add(new PortsDetector());         // ss / netstat / nmap / lsof
         detectors.add(new CapabilitiesDetector());  // getcap -r /
+        detectors.add(new HttpDetector());          // curl -i / raw HTTP  (auto CVE match)
+        detectors.add(new CronDetector());          // crontab -l, /etc/crontab
         detectors.add(new PasswdDetector());        // cat /etc/passwd
         detectors.add(new ShadowDetector());        // cat /etc/shadow
+        detectors.add(new KernelDetector());        // uname -a  (auto CVE match)
 
         // Worked example from docs/ADDING_DETECTORS.md. Uncomment to switch it on.
         // detectors.add(new WindowsFoldersDetector());

@@ -45,14 +45,28 @@ box — the same list a learner meets working through a CTF or a HackTheBox mach
 | id       | input                                                              | what it tells you |
 |----------|--------------------------------------------------------------------|-------------------|
 | `setuid` | `find / -perm -4000 -ls`, `-perm -2000`, `-perm /6000`, bare paths, `ls -l`, `%m %p` | Which set-id (SUID/SGID) binaries ship with the distro, which are GTFOBins escalation vectors, which are unknown, and which sit somewhere a package would never put one |
+| `groups` | `id`                                                              | Which groups are a privilege-escalation path in disguise — `docker`, `lxd`, `disk`, `shadow`, `sudo`/`wheel` — each with the concrete next step |
 | `sudo`   | `sudo -l`                                                          | The full-root grants, the binaries GTFOBins can turn into a root shell, the `env_keep`/`LD_PRELOAD` holes, the NOPASSWD entries, and version-specific ones (Baron Samedit et al.) — each with the next move spelled out |
+| `smb`    | `smbclient -L`, `enum4linux`, `smbmap`, nmap `smb-*` scripts       | SMBv1 / MS17-010 (EternalBlue), signing not required (relay), guest/null-session access, the Samba version → CVEs, and which shares are non-default |
+| `ftp`    | FTP banners, nmap ftp lines, `ftp-anon`                            | The server version → CVEs automatically (vsftpd 2.3.4 backdoor, ProFTPD mod_copy, …) and whether anonymous login is allowed |
+| `caps`   | `getcap -r / 2>/dev/null`                                          | What each capability actually grants, and whether the distro really ships that file with it |
+| `http`   | `curl -i`/`-I`, a raw HTTP request or response, a Burp copy        | Method (`PUT`/`TRACE`/…), the `Server`/`X-Powered-By` version → CVEs, missing security headers, cookie flags, CORS |
+| `cron`   | `crontab -l`, `/etc/crontab`, `/etc/cron.d/*`                      | A root job running a script from a writable location, a hijackable relative command or `PATH`, and wildcard (tar/rsync) injection |
 | `passwd` | `cat /etc/passwd`                                                  | A second UID 0 account, a password hash sitting in a world-readable file, an empty password, a service account given a login shell, and which accounts are the human targets |
 | `shadow` | `cat /etc/shadow`                                                  | No-password accounts, weak hash algorithms (MD5/DES), and for every live hash the exact `hashcat -m` / `john --format` to crack it |
-| `caps`   | `getcap -r / 2>/dev/null`                                          | What each capability actually grants, and whether the distro really ships that file with it |
+| `kernel` | `uname -a`, `uname -r`, `cat /proc/version`                        | The running kernel matched **automatically** against known local-privesc CVEs — Dirty COW, Dirty Pipe, the netfilter/nf_tables bugs — with the affected range |
 | `ports`  | `ss -tulpn`, `netstat -tulpn`, `nmap` (normal or `-oG`), `lsof -i`, a bare list of ports | What each port is for, whether it is bound to loopback or the whole network, whether the process holding it makes sense |
 
 Paste more than one at a time if you like — each format is detected and reported separately, so
-a whole enumeration dump goes in at once.
+a whole enumeration dump (or a linpeas run) goes in at once and comes back split by tool.
+
+### Automatic CVE matching
+
+`ftp`, `smb`, `http` and `kernel` don't just name a version — they match it against a
+version-range table and report the CVEs that land in range, with the affected bounds and the
+next step. It's an **offline, curated** match (no network, no live feed), so it's a fast triage
+starting point, not a substitute for a real scan — every finding says as much. Add or correct a
+range by editing one row (`data/service_cves.tsv`, `data/kernel_cves.tsv`).
 
 ### Built to learn from
 
@@ -109,11 +123,17 @@ data/capabilities.tsv  what each Linux capability grants
 data/caps_known.tsv    files the distro ships with capabilities
 data/hash_formats.tsv  crypt hash algorithms -> strength + hashcat/john mode
 data/system_users.tsv  well-known /etc/passwd account names
+data/groups.tsv        unix groups that are a privesc path (docker, disk, ...)
+data/writable_dirs.tsv dirs a user can write (setuid + cron use it)
+data/service_cves.tsv  product + version range -> CVE  (ftp/smb/http)
+data/kernel_cves.tsv   kernel version range -> local-privesc CVE
+data/http_headers.tsv  which HTTP headers matter and why
 ```
 
-`gtfobins.tsv` is shared by the `setuid` and `sudo` detectors — add a binary once and both use
-it. `hash_formats.tsv` is where you would add a new hash marker (say a distro's new default) so
-the `shadow` and `passwd` detectors learn its cracking mode.
+Several tables are shared, so one edit teaches several detectors: `gtfobins.tsv` feeds `setuid`
+and `sudo`; `writable_dirs.tsv` feeds `setuid` and `cron`; `service_cves.tsv` feeds `ftp`, `smb`
+and `http`; `hash_formats.tsv` feeds `shadow` and `passwd`. Add a binary, a directory, or a CVE
+range once and every detector that uses that table picks it up on the next run — no rebuild.
 
 Your own rows are better kept out of the repo, in
 `~/.config/silverdetector/data/<table>.tsv`. That directory is read last, and a row there
@@ -173,5 +193,5 @@ jar runs unchanged on JDK 17 and anything newer. `./build.sh` is the whole build
 floor with `SILVERDETECTOR_RELEASE=21 ./build.sh` if you ever need to.
 
 ```sh
-./test.sh             # 77 checks over the samples, detectors and override behaviour
+./test.sh             # 114 checks over the samples, detectors and override behaviour
 ```

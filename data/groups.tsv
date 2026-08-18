@@ -1,0 +1,36 @@
+# Unix group membership and what it is worth to an attacker, matched by the groups detector
+# against `id` output. Most groups are harmless; the ones below carry a severity because they
+# are, directly or nearly, a path to root or to sensitive data.
+#
+# severity  OK | INFO | NOTICE | WARN | CRITICAL
+# exploit   a concrete next step the learner can try (kept short; '-' when none)
+#
+group	severity	description	exploit
+root	CRITICAL	Membership of the root group grants group-owner access to root-group files and is a stepping stone to full root.	hunt for group root-writable binaries and config
+sudo	WARN	Can invoke sudo (Debian/Ubuntu). What you may run as root is the real story.	sudo -l
+wheel	WARN	Can invoke sudo (Arch/Fedora/RHEL) once configured.	sudo -l
+admin	WARN	Legacy sudo-capable admin group.	sudo -l
+docker	CRITICAL	The docker group is root: you control the daemon, which runs as root.	docker run -v /:/mnt -it alpine chroot /mnt sh
+lxd	CRITICAL	The lxd group is root: launch a privileged container with the host disk mounted.	well-known lxd/lxc mount -v /:/mnt privesc
+lxc	CRITICAL	Can create privileged containers with host filesystem access.	same technique as the lxd group
+disk	CRITICAL	Raw access to block devices - read or write the filesystem directly, bypassing permissions.	debugfs /dev/sda1 then cat /etc/shadow
+shadow	CRITICAL	Read /etc/shadow directly and crack every password hash offline.	cat /etc/shadow then hashcat/john
+kmem	CRITICAL	Access to kernel memory via /dev/mem or /dev/kmem.	read or patch kernel memory
+adm	NOTICE	Read most of /var/log - excellent recon (credentials in logs, command history).	grep -riE 'pass|token|key' /var/log
+video	NOTICE	Framebuffer access - screenshot the physical console.	cat /dev/fb0 > /tmp/screen.raw
+input	NOTICE	Read input devices - build a keylogger from /dev/input/event*.	read /dev/input/event*
+kvm	NOTICE	Access /dev/kvm and run VMs; occasionally reaches host resources.	-
+libvirt	WARN	Manage libvirt VMs - often equal to root via a VM that mounts the host disk.	virsh define a VM with the host disk attached
+libvirtd	WARN	Manage libvirt VMs.	as libvirt
+wireshark	NOTICE	Capture live network traffic (dumpcap has cap_net_raw) - sniff credentials.	dumpcap / tcpdump -i any
+staff	NOTICE	Write to /usr/local - plant a binary that lands earlier in someone's PATH.	drop a binary in /usr/local/bin
+netdev	NOTICE	Reconfigure network interfaces.	-
+systemd-journal	NOTICE	Read the systemd journal - logs and sometimes secrets logged by services.	journalctl -r
+tty	NOTICE	Write to other users' terminals.	-
+dialout	NOTICE	Serial-port access - relevant on IoT/OT hosts.	-
+plugdev	OK	Manage removable/pluggable devices. Normal for a desktop user.	-
+users	OK	Generic primary users group. Normal.	-
+audio	OK	Sound-device access. Normal on a desktop.	-
+cdrom	OK	Optical-drive access. Normal.	-
+render	OK	GPU render-node access. Normal on a desktop.	-
+lp	OK	Printer access. Normal.	-

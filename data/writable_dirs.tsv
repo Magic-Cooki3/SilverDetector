@@ -1,0 +1,18 @@
+# Directories where a privileged binary or a cron-invoked script should never live, because a
+# lower-privileged user can influence what is there. Shared by the setuid detector (a SUID file
+# here is a planted backdoor) and the cron detector (a root cron running a script here is a
+# free privesc). Add your own - a per-app spool, a shared drop folder, wherever your target
+# lets normal users write.
+#
+dir	description
+/tmp	world-writable scratch directory
+/var/tmp	world-writable scratch directory
+/dev/shm	world-writable shared memory
+/run/shm	world-writable shared memory
+/home	user home directories - writable by their owners
+/root	root's home - scripts here are often hand-edited and forgotten
+/media	removable-media mount points
+/mnt	temporary mount points
+/srv/ftp	FTP upload area
+/var/www	web root - frequently writable by the web-server user
+/var/spool	spool directories

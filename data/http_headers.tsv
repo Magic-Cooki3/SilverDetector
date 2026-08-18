@@ -1,0 +1,21 @@
+# HTTP response headers the http detector reasons about.
+#
+# kind:
+#   security   a hardening header - its ABSENCE from a response is the finding
+#   disclosure the header leaks version/stack info - its PRESENCE is the finding
+#   dangerous  the header value can itself be a problem (checked in code)
+#
+# severity is what a missing security header (or a present disclosure header) scores.
+#
+header	kind	severity	description
+strict-transport-security	security	NOTICE	HSTS. Without it, a browser can be downgraded to plain HTTP and the session stripped (sslstrip).
+content-security-policy	security	NOTICE	CSP. Without it there is no defence-in-depth against injected scripts (XSS).
+x-frame-options	security	NOTICE	Anti-clickjacking. Without it (and without a frame-ancestors CSP) the page can be framed and clickjacked.
+x-content-type-options	security	NOTICE	Set to nosniff to stop MIME sniffing. Its absence enables some content-type confusion attacks.
+referrer-policy	security	INFO	Controls how much of the URL leaks in the Referer header to other sites.
+permissions-policy	security	INFO	Restricts powerful browser features (camera, geolocation, ...). Absence is a hardening gap, not a hole.
+server	disclosure	NOTICE	Advertises the server software and often its exact version - free version-matching for an attacker (and for this tool).
+x-powered-by	disclosure	NOTICE	Advertises the app stack (e.g. PHP and its version). Pure information disclosure; turn it off.
+x-aspnet-version	disclosure	NOTICE	Leaks the ASP.NET version.
+x-aspnetmvc-version	disclosure	NOTICE	Leaks the ASP.NET MVC version.
+x-generator	disclosure	INFO	Names the CMS/generator (Drupal, etc.), which maps straight to a version and its CVEs.

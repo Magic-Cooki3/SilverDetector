@@ -1,0 +1,1 @@
+uid=1000(victim) gid=1000(victim) groups=1000(victim),4(adm),24(cdrom),27(sudo),999(docker),1001(disk)

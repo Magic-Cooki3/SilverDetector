@@ -1,0 +1,20 @@
+# Linux kernel local privilege-escalation CVEs, matched automatically by the kernel detector
+# against the running version. min/max is an INCLUSIVE mainline range.
+#
+# IMPORTANT: these are mainline ranges. Every distribution backports fixes into older version
+# numbers, so a kernel whose number sits in a range is a LEAD, not proof - confirm against the
+# exact package build (and, where noted, the distro) before relying on an exploit. That caution
+# is exactly what a learner should internalise, which is why every row repeats it in miniature.
+#
+# min       max        cve             name                    severity  description
+min	max	cve	name	severity	description
+2.6.22	4.8.2	CVE-2016-5195	Dirty COW	CRITICAL	Copy-on-write race: any local user writes to read-only memory and overwrites a root-owned file or SUID binary. Extremely reliable public exploits. Fixed builds share the same version numbers, so confirm the patch level.
+5.8	5.16.10	CVE-2022-0847	Dirty Pipe	CRITICAL	A pipe-buffer flag leak lets any local user overwrite read-only files (e.g. /etc/passwd, a SUID binary) and get root. One-shot and very reliable. Fixed in 5.16.11 / 5.15.25 / 5.10.102.
+2.6.19	5.11	CVE-2021-22555	netfilter heap OOB	CRITICAL	Heap out-of-bounds write in netfilter, reachable from an unprivileged user namespace on distros that enable them - local root.
+3.13	3.19	CVE-2015-1328	overlayfs	CRITICAL	Ubuntu overlayfs lets an unprivileged user create files as root via a user-namespace mount. Ubuntu-specific.
+4.4	4.13.9	CVE-2017-16995	eBPF sign-extension	CRITICAL	eBPF verifier sign-extension flaw gives arbitrary kernel read/write when unprivileged BPF is allowed (kernel.unprivileged_bpf_disabled=0).
+5.1	5.13	CVE-2021-3490	eBPF ALU32 bounds	CRITICAL	eBPF verifier 32-bit bounds bug - kernel read/write and root when unprivileged BPF is enabled.
+5.14	6.3.1	CVE-2023-32233	nf_tables use-after-free	CRITICAL	Netfilter nf_tables use-after-free reachable from an unprivileged user namespace - local root on many recent distros.
+5.1	5.19	CVE-2022-2588	cls_route double-free	HIGH	Route filter double-free, weaponised with the DirtyCred technique for local root across a wide kernel range.
+2.6.39	3.2.1	CVE-2012-0056	mempodipper	CRITICAL	/proc/pid/mem write validation bug - a classic one-shot local root on older kernels.
+5.8	6.1	CVE-2022-32250	nf_tables UAF	HIGH	Another nf_tables use-after-free giving local root from a user namespace; distro exploits published.

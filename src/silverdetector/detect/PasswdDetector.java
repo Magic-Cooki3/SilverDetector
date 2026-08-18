@@ -80,7 +80,13 @@ public final class PasswdDetector implements Detector {
         for (Document.Line line : doc.contentLines()) {
             String text = line.text().strip();
             String[] f = text.split(":", -1);
-            if (f.length != 7 || !isUnsigned(f[2]) || !isUnsigned(f[3]) || f[0].isEmpty()) {
+            if (f.length != 7 || !isUnsigned(f[2]) || !isUnsigned(f[3])) {
+                continue;
+            }
+            // Reject 7-colon lines that are not passwd: a username has no spaces, and the shell
+            // field is empty or an absolute path. This keeps out things like nmap's
+            // "MAC Address: 08:00:27:A5:11:9C (...)" that happen to split into seven fields.
+            if (!isUsername(f[0]) || !isShellField(f[6])) {
                 continue;
             }
             out.add(new Acct(line.number(), text, f[0], f[1],
@@ -232,5 +238,15 @@ public final class PasswdDetector implements Detector {
 
     private static boolean isUnsigned(String s) {
         return !s.isEmpty() && s.chars().allMatch(Character::isDigit);
+    }
+
+    /** A plausible account name: no whitespace, starts with a normal name character. */
+    private static boolean isUsername(String s) {
+        return s.matches("[A-Za-z0-9_][A-Za-z0-9_.$-]*");
+    }
+
+    /** The shell field is empty or an absolute path - never free text with spaces. */
+    private static boolean isShellField(String s) {
+        return s.isEmpty() || (s.startsWith("/") && !s.contains(" "));
     }
 }

@@ -30,11 +30,6 @@ import silverdetector.detect.PermEntries.Entry;
  */
 public final class SetuidDetector implements Detector {
 
-    /** Directories a normal package manager never puts a SUID binary in. */
-    private static final List<String> WRITABLE_ROOTS = List.of(
-            "/tmp", "/var/tmp", "/dev/shm", "/run/shm", "/home", "/root", "/media", "/mnt",
-            "/srv/ftp", "/var/www", "/var/spool");
-
     @Override
     public String id() {
         return "setuid";
@@ -171,7 +166,7 @@ public final class SetuidDetector implements Detector {
         Finding finding = Finding.of(severity, entry.path(), label, detail,
                 entry.raw().strip(), entry.line());
 
-        String writableRoot = writableRoot(entry.path());
+        String writableRoot = WritableDirs.match(entry.path());
         if (writableRoot != null) {
             finding = finding.atLeast(Severity.CRITICAL)
                     .note("lives under " + writableRoot + ", where packages never install set-id "
@@ -236,14 +231,5 @@ public final class SetuidDetector implements Detector {
 
     private static String safeGroup(Entry entry) {
         return entry.group().isEmpty() ? "file's" : entry.group();
-    }
-
-    private static String writableRoot(String path) {
-        for (String root : WRITABLE_ROOTS) {
-            if (path.equals(root) || path.startsWith(root + "/")) {
-                return root;
-            }
-        }
-        return null;
     }
 }

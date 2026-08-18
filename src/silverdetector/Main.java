@@ -188,7 +188,8 @@ public final class Main {
         out.println();
         out.println(Ansi.bold("Knowledge base"));
         List<String> tables = List.of("ports", "listeners", "suid_known", "gtfobins",
-                "capabilities", "caps_known", "hash_formats", "system_users");
+                "capabilities", "caps_known", "hash_formats", "system_users", "groups",
+                "writable_dirs", "service_cves", "kernel_cves", "http_headers");
         for (String name : tables) {
             var table = Kb.table(name);
             out.printf("  %-17s %4d row%s  %s%n", name + ".tsv", table.size(),

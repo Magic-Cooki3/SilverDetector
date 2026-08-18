@@ -137,6 +137,67 @@ check "a locked account is normal"               says "OK     daemon" samples/et
 check "reading shadow is itself noted"           says "you are reading the shadow file" samples/etc-shadow.txt
 
 echo
+echo "group membership (id)"
+check "id output picks the groups detector"      says "read with: groups" samples/id.txt
+check "docker group is critical"                 says "CRIT   docker" samples/id.txt
+check "disk group is critical"                   says "CRIT   disk" samples/id.txt
+check "sudo group warns"                         says "WARN   sudo" samples/id.txt
+check "adm group is a notice"                    says "NOTICE adm" samples/id.txt
+check "cdrom group is normal"                    says "OK     cdrom" samples/id.txt
+check "the escalation step is shown"             says "docker run -v /:/mnt" samples/id.txt
+
+echo
+echo "cron"
+check "crontab picks the cron detector"          says "read with: cron" samples/crontab.txt
+check "cron does not misread find -ls"           silent_about "\[cron\]" samples/find-perm-4000.txt
+check "a root cron in a writable dir is critical" says "CRIT   cron: /home/victim/backup.sh" samples/crontab.txt
+check "a writable cron PATH warns"               says "WARN   cron PATH" samples/crontab.txt
+check "a wildcard tar in cron is called out"     says "wildcard privesc" samples/crontab.txt
+check "run-parts is treated as normal"           says "OK" samples/crontab.txt
+
+echo
+echo "kernel (auto CVE match)"
+check "uname picks the kernel detector"          says "read with: kernel" samples/uname.txt
+check "Dirty Pipe matches 5.15.0"                says "CVE-2022-0847" samples/uname.txt
+check "a matched CVE names the exploit"          says "Dirty Pipe" samples/uname.txt
+check "the mainline range is shown"              says "affects mainline" samples/uname.txt
+check "an ancient kernel matches Dirty COW" \
+    sh -c 'printf "Linux box 3.2.0-4-amd64 #1 SMP Debian x86_64 GNU/Linux\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "CVE-2016-5195"'
+check "a current kernel matches nothing known" \
+    sh -c 'printf "Linux box 6.9.0-1-amd64 #1 SMP x86_64 GNU/Linux\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "No local-privesc CVE"'
+
+echo
+echo "ftp (auto CVE match)"
+check "an ftp banner picks the ftp detector"     says "read with: ftp" samples/ftp-banner.txt
+check "vsftpd 2.3.4 matches its backdoor CVE"    says "CVE-2011-2523" samples/ftp-banner.txt
+check "anonymous ftp is called out"              says "anonymous FTP access allowed" samples/ftp-banner.txt
+
+echo
+echo "smb"
+check "smbclient output picks the smb detector"  says "read with: smb" samples/smbclient.txt
+check "Samba 4.6.2 matches SambaCry"             says "CVE-2017-7494" samples/smbclient.txt
+check "no signing is a relay warning"            says "SMB signing not required" samples/smbclient.txt
+check "anonymous smb access warns"               says "guest/anonymous SMB access" samples/smbclient.txt
+check "a non-default share is noticed"           says "non-default share: backups" samples/smbclient.txt
+check "an SMB1-disabled line is not flagged" \
+    sh -c 'printf "SMB1 disabled -- no workgroup available\n\tSharename  Type  Comment\n\tdata       Disk  x\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -qv "SMBv1 in use"'
+check "MS17-010 vulnerable is critical" \
+    sh -c 'printf "Host script results:\n|   smb-vuln-ms17-010:\n|     State: VULNERABLE\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "EternalBlue"'
+
+echo
+echo "http (headers / methods / auto CVE match)"
+check "an http response picks the http detector" says "read with: http" samples/http-headers.txt
+check "Apache 2.4.49 matches CVE-2021-41773"     says "CVE-2021-41773" samples/http-headers.txt
+check "OpenSSL 1.0.1e matches Heartbleed"        says "CVE-2014-0160" samples/http-headers.txt
+check "a flagless cookie is called out"          says "missing flags" samples/http-headers.txt
+check "wildcard CORS is noticed"                 says "wildcard CORS" samples/http-headers.txt
+check "missing security headers are listed"      says "missing security headers" samples/http-headers.txt
+check "a PUT request is flagged" \
+    sh -c 'printf "PUT /shell.php HTTP/1.1\nHost: x\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "PUT request"'
+check "a hardened response is clean" \
+    sh -c 'printf "HTTP/1.1 200 OK\nStrict-Transport-Security: max-age=63072000\nContent-Security-Policy: default-src '"'"'self'"'"'\nX-Frame-Options: DENY\nX-Content-Type-Options: nosniff\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "security headers present"'
+
+echo
 echo "input handling"
 printf '22\n80\n443\n8080\n' > "$tmp/bare.txt"
 check "a bare list of ports is understood"       says "tcp/443 — https" "$tmp/bare.txt"

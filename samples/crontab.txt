@@ -1,0 +1,11 @@
+# Edit this file to introduce tasks to be run by cron.
+SHELL=/bin/sh
+PATH=/tmp:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MAILTO=root
+
+*/5 * * * * root /opt/scripts/collect.sh
+0  2 * * * root /home/victim/backup.sh
+17 *  * * * root    cd / && run-parts --report /etc/cron.hourly
+30 3 * * * root tar -czf /var/backups/www.tgz -C /var/www *
+*/10 * * * * root cleanup
+@reboot root /usr/local/sbin/init-net.sh

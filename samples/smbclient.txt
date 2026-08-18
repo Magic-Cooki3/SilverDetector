@@ -1,0 +1,11 @@
+Domain=[WORKGROUP] OS=[Windows 6.1] Server=[Samba 4.6.2]
+
+	Sharename       Type      Comment
+	---------       ----      -------
+	print$          Disk      Printer Drivers
+	backups         Disk      Nightly backups
+	IPC$            IPC       IPC Service (Samba server)
+	ADMIN$          Disk      Remote Admin
+Reconnecting with SMB1 for workgroup listing.
+Server signing: disabled
+Anonymous login successful
