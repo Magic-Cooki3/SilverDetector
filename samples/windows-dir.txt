@@ -1,0 +1,16 @@
+# Sample for the WindowsFoldersDetector example in docs/ADDING_DETECTORS.md.
+# It only produces a report once you register that detector - see the doc.
+
+ Volume in drive C has no label.
+ Directory of C:\
+
+08/18/2026  10:22 AM    <DIR>          PerfLogs
+08/18/2026  10:22 AM    <DIR>          Program Files
+08/18/2026  10:22 AM    <DIR>          Program Files (x86)
+08/18/2026  10:22 AM    <DIR>          ProgramData
+08/18/2026  10:22 AM    <DIR>          Users
+08/18/2026  10:22 AM    <DIR>          Windows
+08/18/2026  10:22 AM    <DIR>          inetpub
+07/02/2026  03:11 AM    <DIR>          Temp
+07/02/2026  03:14 AM    <DIR>          intel-update
+               0 File(s)              0 bytes

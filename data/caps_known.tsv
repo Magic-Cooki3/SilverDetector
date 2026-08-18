@@ -1,0 +1,27 @@
+# Files that a stock install ships WITH capabilities, so getcap output can be triaged.
+#
+# caps must list exactly the capabilities the distro grants (comma separated, no flags) for
+# the row to count as "expected". Anything else - extra caps, or a path that is not in here -
+# is reported on its own merits from capabilities.tsv.
+#
+path	caps	purpose	severity	description
+/usr/bin/ping	cap_net_raw	ICMP echo	OK	iputils ping. Needs raw sockets; this replaced the old SUID bit and is the normal state on a modern distro.
+/bin/ping	cap_net_raw	ICMP echo	OK	iputils ping with raw-socket capability instead of SUID.
+/usr/bin/ping6	cap_net_raw	ICMPv6 echo	OK	IPv6 ping; raw sockets only.
+/usr/bin/arping	cap_net_raw	ARP ping	OK	Sends ARP requests; raw sockets only.
+/usr/bin/clockdiff	cap_net_raw	clock comparison	OK	iputils clockdiff; raw sockets only.
+/usr/bin/tracepath	cap_net_raw	path MTU discovery	OK	iputils tracepath; raw sockets only.
+/usr/bin/traceroute6.iputils	cap_net_raw	IPv6 traceroute	OK	iputils traceroute6; raw sockets only.
+/usr/bin/mtr-packet	cap_net_raw	mtr packet engine	OK	mtr's privileged helper; raw sockets only.
+/usr/bin/fping	cap_net_raw	parallel ping	OK	fping; raw sockets only.
+/usr/bin/dumpcap	cap_net_admin,cap_net_raw	Wireshark capture helper	NOTICE	Wireshark's capture process. Expected if wireshark-cli is installed and you chose the "non-root capture" option; it does mean anyone in the wireshark group can sniff the network.
+/usr/sbin/dumpcap	cap_net_admin,cap_net_raw	Wireshark capture helper	NOTICE	Wireshark's capture process; lets the wireshark group sniff traffic.
+/usr/bin/newuidmap	cap_setuid	user namespace uid mapping	OK	shadow's helper for rootless containers. cap_setuid looks alarming but it only writes uid_map for the calling namespace.
+/usr/bin/newgidmap	cap_setgid	user namespace gid mapping	OK	shadow's helper for rootless containers; writes gid_map only.
+/usr/bin/gnome-keyring-daemon	cap_ipc_lock	keyring daemon	OK	Locks secrets into memory that cannot be swapped to disk.
+/usr/bin/systemd-detect-virt	cap_dac_override	virtualisation detection	NOTICE	Ships this way on a few distros so it can read DMI tables. cap_dac_override is very strong for what it does - worth confirming against your package manager.
+/usr/lib/systemd/systemd-executor	cap_sys_admin	systemd helper	NOTICE	Present on some systemd builds; verify with your package manager.
+/usr/bin/rcp	cap_net_bind_service	legacy remote copy	NOTICE	Reserved-port binding for the r-services. Should not be installed at all on a modern host.
+/usr/bin/rsh	cap_net_bind_service	legacy remote shell	NOTICE	Reserved-port binding for the r-services. Should not be installed at all.
+/usr/bin/rlogin	cap_net_bind_service	legacy remote login	NOTICE	Reserved-port binding for the r-services. Should not be installed at all.
+/usr/sbin/suexec	cap_setgid,cap_setuid	Apache CGI wrapper	NOTICE	Apache's suexec with capabilities instead of SUID. Only expected on a web server.

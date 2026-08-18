@@ -1,0 +1,29 @@
+# Starter knowledge for the WindowsFoldersDetector example (docs/ADDING_DETECTORS.md).
+# Keyed on the lowercase leaf name, so "C:\Windows" and "Windows" both match.
+#
+path	purpose	since	severity	description
+windows	operating system	Windows NT onwards	OK	The OS itself: kernel, drivers, System32.
+program files	64-bit applications	Windows XP x64 onwards	OK	Default install location for 64-bit software.
+program files (x86)	32-bit applications	Windows XP x64 onwards	OK	Default install location for 32-bit software on a 64-bit OS.
+programdata	per-machine application data	Windows Vista onwards	OK	Application data shared by all users. Hidden by default, and a common place for software to keep configuration - and for malware to keep itself.
+users	user profiles	Windows Vista onwards	OK	Home directories. Replaced "Documents and Settings".
+documents and settings	user profiles (legacy)	Windows XP	NOTICE	On Vista and later this is only a junction kept for compatibility. A real directory here means a very old system or something imitating one.
+perflogs	performance logs	Windows Vista onwards	OK	Performance Monitor output. Usually empty - which is exactly why it gets used as a staging directory.
+$recycle.bin	recycle bin	Windows Vista onwards	OK	Per-user deleted files.
+recycler	recycle bin (legacy)	Windows XP	NOTICE	The XP-era recycle bin. Should not exist on a modern install.
+system volume information	restore points	Windows XP onwards	OK	Volume Shadow Copy and indexing data. Not readable even by administrators without taking ownership.
+recovery	recovery environment	Windows Vista onwards	OK	WinRE boot image.
+boot	boot files	Windows Vista onwards	OK	Boot manager resources.
+efi	EFI system partition	Windows Vista onwards	OK	UEFI boot loaders.
+inetpub	IIS web root	Windows 2000 onwards	NOTICE	IIS is installed. On a workstation that is worth a question, and wwwroot is a favourite webshell location.
+temp	temporary files	any	NOTICE	A writable scratch directory at the root of the drive. Legitimate installers use it; so does everything else.
+intel	chipset driver leftovers	any	OK	Left behind by Intel driver installers.
+amd	chipset driver leftovers	any	OK	Left behind by AMD driver installers.
+nvidia	driver leftovers	any	OK	Left behind by NVIDIA driver installers.
+drivers	driver staging	any	NOTICE	Not a stock folder at the drive root. Usually an OEM image; confirm it.
+msocache	Office installer cache	Office 2003-2010	OK	Local Office installation source.
+oem	OEM image files	any	OK	Vendor preload leftovers.
+windows.old	previous installation	Windows 7 onwards	NOTICE	The previous Windows install after an upgrade. Full of readable user data and old credential stores.
+appdata	per-user application data	Windows Vista onwards	OK	Roaming/Local/LocalLow application data inside a user profile.
+system32	system binaries	Windows NT onwards	OK	Core OS binaries and drivers. On 64-bit Windows this holds the 64-bit files.
+syswow64	32-bit system binaries	Windows XP x64 onwards	OK	The 32-bit system directory, despite the name.

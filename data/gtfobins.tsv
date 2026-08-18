@@ -1,0 +1,161 @@
+# Binaries that hand out root (or arbitrary file access) the moment they are SUID.
+#
+# Keyed on the file name, not the path, so /usr/local/bin/find and /tmp/find both match.
+# Nothing in here is part of a stock set-id set - if one of these turns up in a
+# find -perm -4000 hunt, someone put it there.
+#
+# risk  privesc  spawns a shell / runs commands as the file owner
+#       read     reads any file as the owner (which means /etc/shadow)
+#       write    writes any file as the owner (which means /etc/passwd, cron, sudoers)
+#       limited  useful, but not a one-step win
+#
+bin	risk	description
+bash	privesc	A SUID shell. "bash -p" keeps the effective uid, so this is a root shell with no exploit at all.
+sh	privesc	A SUID shell. "sh -p" keeps the effective uid - instant root.
+dash	privesc	A SUID shell. Keeps the effective uid with -p.
+zsh	privesc	A SUID shell. Root shell in one command.
+ksh	privesc	A SUID shell. Root shell in one command.
+csh	privesc	A SUID shell.
+tcsh	privesc	A SUID shell.
+fish	privesc	A SUID shell.
+ash	privesc	A SUID shell (busybox family).
+rbash	privesc	A SUID restricted shell, which is trivially escaped.
+busybox	privesc	busybox bundles sh - "busybox sh" is a root shell when it is SUID.
+find	privesc	"find . -exec /bin/sh -p \; -quit" runs a shell as the owner. The textbook SUID escalation.
+vim	privesc	Runs shell commands (:!sh) and reads/writes any file as the owner.
+vi	privesc	Same as vim: :!sh gives a shell as the owner.
+view	privesc	vim in read-only mode - still runs :!sh.
+rvim	privesc	Restricted vim; the restriction is escapable via Python/Lua interfaces.
+rview	privesc	Restricted view; same escape as rvim.
+vimdiff	privesc	vim front end - same :!sh escape.
+nvim	privesc	Neovim runs shell commands as the owner.
+nano	write	Nano can write any file as the owner (^R^X also runs commands in some builds) - enough to add a root user to /etc/passwd.
+pico	write	nano's alias; same file-write escalation.
+emacs	privesc	"emacs -Q -nw --eval '(term \"/bin/sh -p\")'" spawns a shell as the owner.
+ed	privesc	The ed editor can shell out with "!/bin/sh".
+less	privesc	"!/bin/sh" from the pager spawns a shell as the owner, and it reads any file.
+more	privesc	Same pager escape as less when the output does not fit the screen.
+most	privesc	Pager with a shell escape.
+pg	privesc	Pager with a "!" shell escape.
+man	privesc	Pages through less, which then gives the "!/bin/sh" escape.
+awk	privesc	"awk 'BEGIN {system(\"/bin/sh\")}'" runs a shell as the owner.
+gawk	privesc	Same system() escape as awk.
+mawk	privesc	Same system() escape as awk.
+nawk	privesc	Same system() escape as awk.
+perl	privesc	"perl -e 'exec \"/bin/sh\";'" - and Perl honours SUID directly.
+python	privesc	"python -c 'import os; os.execl(\"/bin/sh\",\"sh\",\"-p\")'" gives a root shell.
+python2	privesc	Same os.execl escalation as python.
+python3	privesc	Same os.execl escalation as python.
+ruby	privesc	"ruby -e 'exec \"/bin/sh\"'" runs a shell as the owner.
+php	privesc	"php -r \"pcntl_exec('/bin/sh',['-p']);\"" runs a shell as the owner.
+lua	privesc	os.execute("/bin/sh") from a SUID lua is a root shell.
+luajit	privesc	Same os.execute escalation as lua.
+node	privesc	child_process.spawn from a SUID node runs commands as the owner.
+tclsh	privesc	"exec /bin/sh <@stdin >@stdout 2>@stderr" spawns a shell.
+expect	privesc	"expect -c 'spawn /bin/sh -p; interact'" spawns a shell as the owner.
+gdb	privesc	The debugger runs arbitrary code: "gdb -nx -ex 'python import os; os.execl(\"/bin/sh\",\"sh\",\"-p\")' -ex quit".
+strace	privesc	"strace -o /dev/null /bin/sh -p" runs the shell with the owner's privileges.
+ltrace	privesc	Runs a target binary under the owner's uid.
+tcpdump	privesc	The -z postrotate-command option executes a script as the owner.
+nmap	privesc	Old versions have --interactive; every version runs NSE Lua scripts, which can exec a shell.
+socat	privesc	"socat stdin exec:/bin/sh" is a shell; it also moves files and opens listeners as the owner.
+ftp	privesc	The "!" command escapes to a shell as the owner.
+tftp	write	Fetches and writes files as the owner.
+wget	write	Downloads to any path as the owner - overwrite /etc/passwd or a cron file.
+curl	write	Writes downloaded content to any path as the owner (-o).
+git	privesc	Hooks, "git help" (pager) and -c core.pager=/bin/sh all run commands as the owner.
+rsync	privesc	"rsync -e 'sh -c \"sh -p 0<&2 1>&2\"'" runs a shell as the owner, and it copies any file.
+tar	privesc	--checkpoint-action=exec runs a command as the owner; it also reads and writes any file.
+cpio	write	Copies files in and out of any path with the owner's privileges.
+zip	privesc	The -T -TT options run a command as the owner.
+unzip	write	Extracts over any path as the owner.
+7z	read	Reads any file as the owner by reporting it as an archive listing error.
+ar	read	Reads any file as the owner into an archive.
+gzip	read	Reads and writes files as the owner; combined with -f it overwrites protected paths.
+xz	read	Reads any file as the owner.
+bzip2	read	Reads any file as the owner.
+cat	read	Reads any file as the owner - /etc/shadow, SSH host keys, anything.
+head	read	Reads the start of any file as the owner.
+tail	read	Reads the end of any file as the owner.
+nl	read	Numbers and prints any file as the owner.
+od	read	Dumps any file as the owner.
+hexdump	read	Dumps any file as the owner.
+xxd	read	Dumps any file as the owner (and writes them back with -r).
+strings	read	Prints readable strings from any file as the owner.
+base64	read	Encodes any file as the owner; decode it on the other side to read it.
+base32	read	Encodes any file as the owner.
+basenc	read	Encodes any file as the owner.
+uuencode	read	Encodes any file as the owner.
+sort	read	Prints any file as the owner.
+uniq	read	Prints any file as the owner.
+cut	read	Prints fields of any file as the owner.
+grep	read	Prints matching lines of any file as the owner.
+sed	privesc	"sed -n '1e exec sh -p 1>&0' /etc/hosts" runs a shell; it also edits any file in place.
+tee	write	Writes stdin to any file as the owner - append a root user to /etc/passwd.
+dd	write	Reads and writes any file as the owner, block by block.
+cp	write	Copies over any file as the owner - overwrite /etc/passwd or a systemd unit.
+mv	write	Moves any file as the owner.
+install	write	Copies files with arbitrary ownership and mode as the owner.
+chmod	privesc	Sets any mode on any file as the owner - chmod u+s /bin/bash and you are done.
+chown	privesc	Changes ownership of any file as the owner.
+chroot	privesc	"chroot / /bin/sh -p" runs a shell as the owner.
+env	privesc	"env /bin/sh -p" runs a shell as the owner.
+nice	privesc	Runs an arbitrary command as the owner.
+ionice	privesc	Runs an arbitrary command as the owner.
+nohup	privesc	Runs an arbitrary command as the owner.
+setarch	privesc	Runs an arbitrary command as the owner.
+stdbuf	privesc	Runs an arbitrary command as the owner.
+timeout	privesc	Runs an arbitrary command as the owner.
+taskset	privesc	Runs an arbitrary command as the owner.
+unshare	privesc	Runs a shell in a new namespace as the owner.
+flock	privesc	"flock -u / /bin/sh -p" runs a shell as the owner.
+watch	privesc	"watch -x sh -c 'reset; exec sh -p'" runs a shell as the owner.
+xargs	privesc	Runs an arbitrary command as the owner.
+make	privesc	Runs commands from a Makefile as the owner (-s --eval).
+cmake	privesc	Executes commands during configure as the owner.
+systemctl	privesc	Writes and starts a unit file that runs anything as root.
+service	privesc	Starts init scripts as the owner.
+start-stop-daemon	privesc	"start-stop-daemon -n x -S -x /bin/sh -- -p" runs a shell as the owner.
+docker	privesc	Membership of docker, or a SUID docker client, mounts the host filesystem into a container as root. Full host compromise.
+lxc	privesc	Same as docker: mount the host into an unprivileged container and read or write anything.
+runc	privesc	Container runtime; can mount and execute against the host filesystem.
+rpm	privesc	Runs scriptlets as the owner; "rpm --eval '%{lua:posix.exec(\"/bin/sh\")}'".
+dpkg	privesc	Runs maintainer scripts as the owner.
+apt	privesc	APT::Update::Pre-Invoke runs commands as the owner.
+apt-get	privesc	Same Pre-Invoke command execution as apt.
+pip	privesc	Runs setup.py from a package as the owner.
+gem	privesc	Runs extension build steps as the owner.
+openssl	privesc	Loads engines and writes files as the owner; enough for a full compromise.
+ssh-keygen	privesc	Loads an arbitrary shared object with -D, executing code as the owner.
+crash	privesc	Kernel debugger; runs shell commands as the owner.
+scp	write	Copies files as the owner and can run a program via -S.
+sftp	write	Transfers any file as the owner and escapes with "!".
+smbclient	privesc	The "!" command escapes to a shell as the owner.
+mysql	privesc	"\\! /bin/sh" from the client escapes to a shell as the owner.
+psql	privesc	"\\!" escapes to a shell as the owner.
+sqlite3	privesc	Runs shell commands and reads/writes any file as the owner.
+mongo	privesc	Runs JavaScript that spawns a process as the owner.
+redis-cli	limited	Not a direct escalation, but with a SUID bit it reads and writes files through the server.
+screen	privesc	A SUID screen (not SGID utmp) is a root shell, and old 4.5.0 builds are the classic local root.
+tmux	privesc	Runs commands as the owner.
+byobu	privesc	Wraps tmux/screen and runs commands as the owner.
+script	privesc	"script -q /dev/null /bin/sh -p" runs a shell as the owner.
+setfacl	write	Grants your user access to any file as the owner.
+getfacl	read	Reads ACLs anywhere; combined with setfacl it is full file control.
+debugfs	read	Reads the raw filesystem, bypassing every permission check.
+dmsetup	privesc	Creates device-mapper devices and can spawn a shell as the owner.
+mount.nfs	privesc	Only expected as the packaged helper; anywhere else it mounts attacker-controlled filesystems.
+capsh	privesc	"capsh --gid=0 --uid=0 --" drops you straight into a root shell.
+jq	read	Reads any file as the owner (--slurpfile / input).
+yq	read	Reads any file as the owner.
+logsave	privesc	Runs a command as the owner.
+run-parts	privesc	Runs every script in a directory as the owner.
+pkill	limited	Signals any process as the owner - denial of service rather than escalation.
+kill	limited	Signals any process as the owner.
+date	read	Reads any file as the owner via -f, one line at a time.
+wall	read	Prints any file as the owner to every terminal.
+ip	privesc	"ip netns add x; ip netns exec x /bin/sh -p" runs a shell as the owner.
+iptables	write	Writes rule dumps to any file as the owner.
+nft	write	Writes ruleset output to any file as the owner.
+byebug	privesc	Ruby debugger; runs arbitrary code as the owner.
+ash	privesc	A SUID shell.

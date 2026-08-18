@@ -1,0 +1,130 @@
+#!/bin/sh
+# silverdetector - paste command output into an empty file, get told what is normal
+# and what is not.
+#
+#   silverdetector                  open an empty file in $EDITOR, paste, save, get the report
+#   silverdetector paste            the same thing, said out loud
+#   silverdetector out.txt          analyse a file you already have
+#   ss -tulpn | silverdetector      analyse a pipe
+#   silverdetector --help           everything else
+#
+# Everything after the mode word is handed straight to the Java program.
+set -eu
+
+# --- locate the install, even through a symlink in ~/.local/bin -----------------------
+script=$0
+while [ -L "$script" ]; do
+    link=$(readlink "$script")
+    case $link in
+        /*) script=$link ;;
+        *)  script=$(dirname -- "$script")/$link ;;
+    esac
+done
+bindir=$(CDPATH='' cd -- "$(dirname -- "$script")" && pwd)
+root=$(CDPATH='' cd -- "$bindir/.." && pwd)
+jar=$root/silverdetector.jar
+
+SILVERDETECTOR_HOME=$root
+export SILVERDETECTOR_HOME
+
+# sh knows whether stdout is a terminal; the JDK is unreliable about it across versions.
+if [ -t 1 ]; then
+    SILVERDETECTOR_COLOR=1
+else
+    SILVERDETECTOR_COLOR=0
+fi
+export SILVERDETECTOR_COLOR
+
+if ! command -v java >/dev/null 2>&1; then
+    echo "silverdetector: java not found - install a JRE/JDK (pacman -S jdk-openjdk)" >&2
+    exit 2
+fi
+
+if [ ! -f "$jar" ]; then
+    echo "silverdetector: building silverdetector.jar (first run)..." >&2
+    "$root/build.sh" >&2
+fi
+
+run() {
+    status=0
+    java -jar "$jar" "$@" || status=$?
+    return $status
+}
+
+# --- mode word -----------------------------------------------------------------------
+mode=auto
+if [ $# -gt 0 ]; then
+    case $1 in
+        paste|new|edit) mode=paste; shift ;;
+    esac
+fi
+
+# With no file argument and a terminal on stdin, there is nothing to read: open an editor.
+if [ "$mode" = auto ]; then
+    mode=stdin
+    if [ -t 0 ]; then
+        mode=paste
+        for arg in "$@"; do
+            case $arg in
+                -) mode=stdin ;;
+                -*) ;;
+                *) mode=file ;;
+            esac
+        done
+    fi
+fi
+
+if [ "$mode" != paste ]; then
+    run "$@"
+    exit $?
+fi
+
+# --- paste mode ----------------------------------------------------------------------
+editor=${VISUAL:-${EDITOR:-}}
+if [ -z "$editor" ]; then
+    for candidate in nano vim vi nvim micro ed; do
+        if command -v "$candidate" >/dev/null 2>&1; then
+            editor=$candidate
+            break
+        fi
+    done
+fi
+if [ -z "$editor" ]; then
+    echo "silverdetector: no editor found - set \$EDITOR, or pass a file instead" >&2
+    exit 2
+fi
+
+pastedir=${SILVERDETECTOR_PASTES:-${TMPDIR:-/tmp}/silverdetector}
+mkdir -p "$pastedir"
+paste_file=$pastedir/paste-$(date +%Y%m%d-%H%M%S).txt
+
+cat > "$paste_file" <<'HEADER'
+# Paste your command output below this block, save, and quit the editor.
+# Lines starting with # are ignored, so you can leave these here.
+#
+# Things it reads:
+#   ss -tulpn                        listening ports
+#   netstat -tulpn / nmap / lsof -i  the same question, other tools
+#   find / -perm -4000 -ls           SUID binaries      (4000)
+#   find / -perm -2000 -ls           SGID binaries      (2000)
+#   find / -perm /6000 -ls           both at once
+#   getcap -r / 2>/dev/null          file capabilities
+#
+# Paste more than one of them at a time if you like - each is reported separately.
+
+HEADER
+
+before=$(cksum < "$paste_file")
+"$editor" "$paste_file"
+after=$(cksum < "$paste_file")
+
+if [ "$before" = "$after" ]; then
+    echo "silverdetector: nothing was pasted, so there is nothing to check." >&2
+    rm -f "$paste_file"
+    exit 2
+fi
+
+status=0
+run "$@" "$paste_file" || status=$?
+printf '  %s\n\n' "paste kept at $paste_file"
+exit $status

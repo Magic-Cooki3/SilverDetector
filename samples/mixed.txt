@@ -1,0 +1,14 @@
+# Two commands pasted into the same file - each is reported separately.
+
+$ ss -tulpn
+Netid State  Recv-Q Send-Q Local Address:Port Peer Address:Port Process
+tcp   LISTEN 0      128          0.0.0.0:22        0.0.0.0:*    users:(("sshd",pid=880,fd=3))
+tcp   LISTEN 0      128        127.0.0.1:6379      0.0.0.0:*    users:(("redis-server",pid=1777,fd=6))
+tcp   LISTEN 0      1            0.0.0.0:31337     0.0.0.0:*    users:(("socat",pid=4102,fd=5))
+
+$ find / -perm -2000 -type f -ls 2>/dev/null
+      2101     32 -rwxr-sr-x   1 root shadow    31160 Feb 14  2024 /usr/bin/expiry
+      2102     72 -rwxr-sr-x   1 root tty       71600 Mar  3  2024 /usr/bin/wall
+      2103     40 -rwxr-sr-x   1 root tty       39832 Mar  3  2024 /usr/bin/write
+      2104     36 -rwxr-sr-x   1 root shadow    35688 Feb 14  2024 /usr/bin/unix_chkpwd
+      2105    120 -rwxr-sr-x   1 root docker   122400 Aug  1 03:12 /usr/local/bin/dstat

@@ -1,0 +1,45 @@
+# Linux file capabilities: what each one actually grants.
+# See capabilities(7). severity is what a file carrying this capability scores by default.
+#
+cap	severity	description
+cap_setuid	CRITICAL	Set any user id, including 0. On an interpreter this is a root shell in one line.
+cap_setgid	CRITICAL	Set any group id, including groups that own sensitive files.
+cap_setfcap	CRITICAL	Set file capabilities on any file, so it can grant itself every other capability.
+cap_dac_read_search	CRITICAL	Bypass all read and directory-search permission checks. Reads /etc/shadow and every key on the box.
+cap_dac_override	CRITICAL	Bypass all read, write and execute permission checks. Effectively full filesystem control.
+cap_fowner	CRITICAL	Bypass ownership checks on chmod, chown and friends.
+cap_chown	CRITICAL	Change the ownership of any file.
+cap_sys_admin	CRITICAL	The catch-all capability: mount, namespaces, device control. Treat it as root.
+cap_sys_module	CRITICAL	Load and unload kernel modules. Kernel code execution, game over.
+cap_sys_ptrace	CRITICAL	Attach to any process, including root ones, and inject code into them.
+cap_sys_rawio	CRITICAL	Raw I/O port and /dev/mem access. Read and rewrite kernel memory.
+cap_mac_admin	CRITICAL	Change the MAC (SELinux/AppArmor) policy.
+cap_mac_override	CRITICAL	Ignore the MAC policy entirely.
+cap_mknod	WARN	Create device nodes - make a raw disk device and read the filesystem around permissions.
+cap_sys_boot	WARN	Reboot the machine or load a new kernel with kexec.
+cap_sys_chroot	WARN	Call chroot, which is an escape primitive when combined with other capabilities.
+cap_sys_resource	WARN	Override resource limits, including reserved filesystem space and kernel queues.
+cap_sys_time	WARN	Set the system clock. Breaks logging, certificates and Kerberos.
+cap_kill	WARN	Send signals to any process regardless of owner.
+cap_net_admin	WARN	Reconfigure networking: interfaces, routes, firewall rules, promiscuous mode.
+cap_bpf	WARN	Load BPF programs. Depending on the kernel this reaches a lot of privileged state.
+cap_perfmon	WARN	Performance monitoring across the system, which leaks memory contents.
+cap_audit_control	WARN	Change the audit subsystem - disable the logging that would record what happens next.
+cap_checkpoint_restore	WARN	Checkpoint and restore processes, including other users' memory.
+cap_setpcap	WARN	Modify the capability sets of processes.
+cap_linux_immutable	NOTICE	Set and clear the immutable and append-only file attributes.
+cap_ipc_owner	NOTICE	Bypass permission checks on shared memory and other IPC objects.
+cap_net_raw	NOTICE	Open raw and packet sockets: sniff traffic and forge packets. Normal for ping, tcpdump and mtr.
+cap_syslog	NOTICE	Read the kernel ring buffer, which leaks addresses useful for defeating KASLR.
+cap_audit_read	NOTICE	Read the audit log.
+cap_audit_write	NOTICE	Write records into the audit log.
+cap_net_bind_service	OK	Bind to ports below 1024. The normal reason a web server does not need to be root.
+cap_net_broadcast	OK	Send broadcast and multicast traffic.
+cap_ipc_lock	OK	Lock memory so it cannot be swapped out. Normal for password and key handling.
+cap_lease	OK	Take out file leases.
+cap_sys_nice	OK	Change scheduling priority. Normal for audio and real-time tooling.
+cap_sys_pacct	OK	Turn process accounting on and off.
+cap_sys_tty_config	OK	Configure and hang up terminals.
+cap_wake_alarm	OK	Set a timer that wakes the system.
+cap_block_suspend	OK	Prevent the system from suspending.
+cap_bpf_read	NOTICE	Non-standard name; check capabilities(7) for what your kernel calls it.

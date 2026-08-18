@@ -1,0 +1,20 @@
+Starting Nmap 7.95 ( https://nmap.org ) at 2026-08-18 11:04 CEST
+Nmap scan report for 192.168.56.101
+Host is up (0.00051s latency).
+Not shown: 990 closed tcp ports (reset)
+
+PORT      STATE SERVICE     VERSION
+21/tcp    open  ftp         vsftpd 2.3.4
+22/tcp    open  ssh         OpenSSH 9.6p1 Debian 4
+80/tcp    open  http        Apache httpd 2.4.58
+139/tcp   open  netbios-ssn Samba smbd 4.6.2
+445/tcp   open  netbios-ssn Samba smbd 4.6.2
+2000/tcp  open  cisco-sccp?
+3306/tcp  open  mysql       MySQL 8.0.36
+4000/tcp  open  remoteanything?
+5900/tcp  open  vnc         VNC (protocol 3.8)
+6667/tcp  open  irc         UnrealIRCd
+8080/tcp  open  http-proxy  Jetty 9.4.51
+9200/tcp  open  http        Elasticsearch REST API 7.10.2
+MAC Address: 08:00:27:A5:11:9C (Oracle VirtualBox virtual NIC)
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel

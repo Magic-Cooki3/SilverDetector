@@ -1,0 +1,173 @@
+# SilverDetector knowledge base: TCP/UDP ports
+#
+# Columns are TAB separated. Lines starting with # are ignored.
+# Add your own rows here, or (better) in ~/.config/silverdetector/data/ports.tsv -
+# a row there replaces the row with the same port number, so you can disagree with
+# anything below without editing this file.
+#
+# proto  tcp | udp | any
+# risk   normal        expected anywhere, exposed or not              -> OK
+#        local         fine on 127.0.0.1, wrong when it answers off-box -> OK / WARN
+#        local-strict  same, but unauthenticated by default            -> OK / CRIT
+#        sensitive     worth a look wherever it is                     -> NOTICE / WARN
+#        dangerous     cleartext, legacy or routinely exploited        -> WARN / CRIT
+#        malware       default port of a handler, backdoor or C2       -> CRIT always
+#
+port	proto	service	risk	description
+7	any	echo	dangerous	Echo service. Obsolete, and a UDP amplification reflector. Nothing should run this.
+9	any	discard	sensitive	Discard service (/dev/null over the network). Occasionally used by Wake-on-LAN tooling.
+13	any	daytime	dangerous	Daytime. Obsolete diagnostic service, usable for amplification.
+17	any	qotd	dangerous	Quote of the day. Obsolete, amplification reflector.
+19	any	chargen	dangerous	Character generator. Classic UDP amplification source, disable it.
+20	tcp	ftp-data	dangerous	FTP data channel. Cleartext file transfer.
+21	tcp	ftp	dangerous	FTP control channel. Credentials and data travel in cleartext; check for anonymous login.
+22	tcp	ssh	normal	OpenSSH. Encrypted remote login and file transfer. Expected on almost every Linux box.
+23	tcp	telnet	dangerous	Telnet. Login and session in cleartext on the wire. Should not be running in 2020s.
+25	tcp	smtp	sensitive	Mail submission/relay. Check it is not an open relay if it answers off-box.
+37	any	time	dangerous	Time protocol. Obsolete, amplification reflector.
+43	tcp	whois	sensitive	WHOIS server. Unusual on a workstation.
+49	any	tacacs	sensitive	TACACS+ device authentication. Network-gear infrastructure, not a laptop service.
+53	any	dns	local	DNS. On a desktop this is normally systemd-resolved or dnsmasq on 127.0.0.53. Answering off-box makes you an open resolver.
+67	udp	dhcp-server	sensitive	DHCP server. Normal on a router or when you are running a rogue-DHCP test; not on a plain client.
+68	udp	dhcp-client	normal	DHCP client. Every machine that gets an address by DHCP has this.
+69	udp	tftp	dangerous	TFTP. No authentication at all; frequently holds router configs and PXE images.
+79	tcp	finger	dangerous	Finger. Leaks usernames and login times. Obsolete.
+80	tcp	http	normal	Plain HTTP web server. Normal, but anything it serves is unencrypted.
+88	any	kerberos	sensitive	Kerberos KDC. Means this host is a domain controller or a KDC.
+110	tcp	pop3	dangerous	POP3 mail retrieval in cleartext. Use 995 instead.
+111	any	rpcbind	sensitive	RPC portmapper. Enumerates every RPC service on the host; a classic recon target when exposed.
+113	tcp	ident	sensitive	Ident. Leaks the local username behind a connection.
+119	tcp	nntp	sensitive	Usenet news transport. Very unusual on a modern host.
+123	udp	ntp	normal	NTP time sync. Normal; only worth a look if it answers queries from the network (monlist amplification).
+135	tcp	msrpc	dangerous	Microsoft RPC endpoint mapper. A Windows host, and a prime enumeration/exploitation target.
+137	udp	netbios-ns	dangerous	NetBIOS name service. Leaks host and domain names; poisonable (Responder).
+138	udp	netbios-dgm	dangerous	NetBIOS datagram service. Legacy Windows file sharing.
+139	tcp	netbios-ssn	dangerous	NetBIOS session service (SMB over NetBIOS). Legacy SMB, should be off in favour of 445.
+143	tcp	imap	sensitive	IMAP mail access. Cleartext unless STARTTLS is enforced; prefer 993.
+161	udp	snmp	dangerous	SNMP. Community strings are often left as public/private and give full device inventory.
+162	udp	snmp-trap	sensitive	SNMP trap receiver. Monitoring infrastructure.
+177	udp	xdmcp	dangerous	X Display Manager Control Protocol. Remote X login with weak authentication.
+179	tcp	bgp	sensitive	BGP routing daemon. Router infrastructure.
+389	tcp	ldap	sensitive	LDAP directory. Cleartext unless STARTTLS; often allows anonymous bind and full directory dumps.
+427	any	slp	sensitive	Service Location Protocol. Amplification reflector, and leaks the service inventory.
+443	tcp	https	normal	TLS web server. Normal on anything serving web content.
+445	tcp	microsoft-ds	dangerous	SMB file sharing. The single most attacked port on Windows networks; check signing and shares.
+464	any	kpasswd	sensitive	Kerberos password change service. Goes with a KDC.
+465	tcp	smtps	normal	SMTP over implicit TLS. Normal mail submission.
+500	udp	isakmp	sensitive	IPsec IKE. A VPN endpoint; aggressive mode can leak PSK hashes.
+502	tcp	modbus	dangerous	Modbus TCP. Industrial control protocol with no authentication whatsoever.
+512	tcp	exec	dangerous	rexec. Cleartext remote execution, obsolete r-service.
+513	tcp	rlogin	dangerous	rlogin. Trust-based remote login, obsolete r-service.
+514	tcp	rsh	dangerous	rsh. Trust-based remote shell, obsolete r-service.
+514	udp	syslog	sensitive	Syslog receiver. Fine on a log server; on a workstation it means you are collecting someone's logs.
+515	tcp	printer	sensitive	LPD print service. Legacy printing, has a history of remote code execution bugs.
+520	udp	rip	sensitive	RIP routing. Unauthenticated route injection.
+523	any	ibm-db2	sensitive	IBM DB2 discovery service.
+540	tcp	uucp	dangerous	UUCP. Obsolete.
+548	tcp	afp	sensitive	Apple Filing Protocol. macOS file sharing.
+554	tcp	rtsp	sensitive	RTSP streaming. Usually a camera or media server; often has no authentication.
+587	tcp	submission	normal	SMTP mail submission with STARTTLS. Normal for a mail client or relay.
+593	tcp	http-rpc-epmap	dangerous	RPC over HTTP endpoint mapper. Windows infrastructure.
+623	udp	ipmi	dangerous	IPMI/BMC (iDRAC, iLO). Out-of-band server management with a long history of authentication bypasses.
+631	any	ipp	local	CUPS printing. Normal bound to localhost; exposed it advertises your printers and has had RCE bugs.
+636	tcp	ldaps	sensitive	LDAP over TLS. Directory service, encrypted.
+646	any	ldp	sensitive	MPLS label distribution. Router infrastructure.
+777	tcp	multiling-http	sensitive	Rarely legitimate. Sometimes used by backdoors.
+789	tcp	redlion-crimson	sensitive	Industrial HMI protocol.
+873	tcp	rsync	sensitive	rsync daemon. Often exposes whole trees with no authentication; check the modules.
+902	tcp	vmware-auth	sensitive	VMware authentication daemon. Hypervisor management.
+993	tcp	imaps	normal	IMAP over TLS. Normal mail access.
+995	tcp	pop3s	normal	POP3 over TLS. Normal mail access.
+1080	tcp	socks	sensitive	SOCKS proxy. Expected if you started proxychains/ssh -D yourself; otherwise it is an open pivot.
+1099	tcp	java-rmi	dangerous	Java RMI registry. Deserialisation RCE is close to automatic here.
+1194	any	openvpn	sensitive	OpenVPN endpoint. Fine if you run a VPN, notable otherwise.
+1234	tcp	ad-hoc	sensitive	No standard service. Common for VLC streams and, just as often, hand-rolled netcat listeners.
+1337	tcp	leet	malware	No legitimate registration. Overwhelmingly a hand-placed backdoor or a CTF service.
+1433	tcp	ms-sql	sensitive	Microsoft SQL Server. Should never face the network directly.
+1434	udp	ms-sql-monitor	sensitive	MSSQL browser service. Leaks instance names, amplification reflector.
+1521	tcp	oracle-tns	sensitive	Oracle TNS listener. Enumerable SIDs, historically weak defaults.
+1723	tcp	pptp	dangerous	PPTP VPN. MS-CHAPv2 is broken; treat any credential used here as compromised.
+1883	tcp	mqtt	sensitive	MQTT broker. Frequently unauthenticated and world-readable.
+1900	udp	ssdp	sensitive	UPnP discovery. Leaks device inventory, strong amplification reflector.
+2000	tcp	cisco-sccp	sensitive	IANA registers this to Cisco SCCP ("Skinny") VoIP call control. In practice it is just as often an ad-hoc application or dev server, so identify the owning process before calling it normal.
+2000	udp	cisco-sccp	sensitive	Cisco SCCP ("Skinny") VoIP signalling.
+2049	any	nfs	dangerous	NFS. no_root_squash and world-readable exports are a standard route to root.
+2082	tcp	cpanel	sensitive	cPanel control panel (plain).
+2083	tcp	cpanel-ssl	sensitive	cPanel control panel (TLS).
+2121	tcp	ftp-alt	dangerous	FTP on an alternate port. Same cleartext problem as 21.
+2181	tcp	zookeeper	local-strict	Apache ZooKeeper. Unauthenticated by default; exposed it hands over cluster configuration.
+2222	tcp	ssh-alt	sensitive	SSH on a non-standard port. Normal if you moved it deliberately; otherwise find out who started it.
+2375	tcp	docker-api	local-strict	Docker daemon API without TLS. Anyone who reaches it is root on the host - it is a root shell as a service.
+2376	tcp	docker-api-tls	sensitive	Docker daemon API with TLS. Still full host control for whoever holds a client certificate.
+2379	tcp	etcd-client	local-strict	etcd client API. Holds Kubernetes secrets in the clear if unauthenticated.
+2380	tcp	etcd-peer	sensitive	etcd peer traffic.
+2483	any	oracle-tns-alt	sensitive	Oracle TNS (unencrypted alternate).
+3000	tcp	dev-http	local	Common development server port (Node, Rails, Grafana). Fine on localhost; exposed it is usually an accident.
+3128	tcp	squid-proxy	sensitive	Squid HTTP proxy. An open proxy lets anyone browse from your IP.
+3260	tcp	iscsi	sensitive	iSCSI target. Raw block-device access over the network.
+3268	tcp	ldap-gc	sensitive	Active Directory global catalog. This host is a domain controller.
+3306	tcp	mysql	local	MySQL/MariaDB. Normal on loopback for a local app; database ports should not face the network.
+3389	tcp	rdp	sensitive	Windows Remote Desktop. High-value target; check NLA is required.
+3632	tcp	distcc	dangerous	distcc daemon. Remote command execution by design (CVE-2004-2687).
+4000	tcp	terabase	sensitive	IANA registers 4000 to Terabase, but in the field it is almost always an application or dev server (and 4000/udp was ICQ). Nothing standard on a Linux box listens here - identify the process.
+4000	udp	icq	sensitive	Historically ICQ. Nothing standard listens here today.
+4040	tcp	spark-ui	local	Spark/dev tooling web UI. Also ngrok's local inspector.
+4369	tcp	epmd	sensitive	Erlang port mapper (RabbitMQ, CouchDB). Leaks node names; with a guessable cookie it is remote code execution.
+4444	tcp	metasploit-handler	malware	Metasploit's default handler/meterpreter port. If you started the handler this is you - if you did not, something is calling home.
+4445	tcp	metasploit-alt	malware	Second-choice Metasploit handler port. Same reasoning as 4444.
+4505	tcp	saltstack-publish	sensitive	SaltStack publish port. Unauthenticated exposure has led to mass compromise (CVE-2020-11651).
+4506	tcp	saltstack-return	sensitive	SaltStack return port. See 4505.
+4786	tcp	cisco-smart-install	dangerous	Cisco Smart Install. Unauthenticated configuration download and overwrite.
+5000	tcp	upnp-or-dev	local	UPnP on some devices, Flask/Docker-registry/AirPlay on others. Identify the process before trusting it.
+5001	tcp	dev-alt	local	Common secondary dev-server port; also iperf.
+5060	any	sip	sensitive	SIP VoIP signalling. Scanned constantly for toll fraud.
+5061	any	sip-tls	sensitive	SIP over TLS.
+5353	udp	mdns	normal	mDNS/Bonjour (avahi). Normal on a desktop; it does advertise your hostname and services on the LAN.
+5432	tcp	postgresql	local	PostgreSQL. Normal on loopback (Metasploit's msfdb uses it); should not face the network.
+5555	tcp	adb	dangerous	Android Debug Bridge over TCP. Unauthenticated shell on the device; also used by worms.
+5601	tcp	kibana	local	Kibana web UI. Usually unauthenticated in the free tier.
+5672	tcp	amqp	sensitive	RabbitMQ/AMQP broker. Default guest:guest credentials are common.
+5800	tcp	vnc-http	dangerous	VNC over HTTP (Java viewer). Legacy and usually unauthenticated.
+5900	tcp	vnc	dangerous	VNC remote desktop. Password is capped at 8 characters and often absent entirely.
+5901	tcp	vnc-1	dangerous	VNC display :1. Same reasoning as 5900.
+5938	tcp	teamviewer	sensitive	TeamViewer. Remote control software; a legitimate install or an unwanted one.
+5984	tcp	couchdb	local-strict	CouchDB HTTP API. Admin-party mode leaves it wide open.
+5985	tcp	winrm	sensitive	Windows Remote Management (HTTP). Remote PowerShell; a primary lateral-movement route.
+5986	tcp	winrm-ssl	sensitive	Windows Remote Management (HTTPS).
+6000	tcp	x11	local-strict	X11 display :0. With access control off, anyone can read your keystrokes and screen.
+6001	tcp	x11-1	local-strict	X11 display :1. See 6000.
+6379	tcp	redis	local-strict	Redis. No authentication by default; exposed it is a well-known path to writing SSH keys or cron jobs as the redis user.
+6443	tcp	kubernetes-api	sensitive	Kubernetes API server. Cluster-wide control plane.
+6666	tcp	irc-alt	sensitive	Alternate IRC port. Historically the classic botnet C2 channel.
+6667	tcp	irc	sensitive	IRC. Legitimate chat, and the original malware C2 protocol - check what is connected.
+6697	tcp	irc-tls	sensitive	IRC over TLS.
+7001	tcp	weblogic	sensitive	Oracle WebLogic. A long list of unauthenticated deserialisation RCEs.
+8000	tcp	http-alt	local	Alternate HTTP. python -m http.server lives here; fine on loopback, an unintended file share when exposed.
+8009	tcp	ajp13	dangerous	Tomcat AJP connector. Ghostcat (CVE-2020-1938) reads and can execute application files.
+8080	tcp	http-proxy	local	HTTP proxy / alternate web port. Burp Suite's default listener. On loopback that is expected; exposed, anyone on the network can proxy through you and read your intercepted traffic.
+8081	tcp	http-alt2	local	Secondary web/proxy port (Nexus, Jenkins agents, dev servers).
+8088	tcp	hadoop-yarn	sensitive	Hadoop YARN ResourceManager. Unauthenticated job submission is remote code execution.
+8443	tcp	https-alt	sensitive	Alternate HTTPS, usually an admin console (Tomcat, VMware, appliances).
+8834	tcp	nessus	sensitive	Nessus scanner web UI.
+8888	tcp	http-alt3	local	Jupyter, alternate proxies and dev servers. A Jupyter notebook without a token is remote code execution.
+9000	tcp	php-fpm	local	php-fpm, SonarQube, MinIO and portainer all default here. FastCGI exposed is remote code execution.
+9001	tcp	supervisord	local	supervisord XML-RPC, also Tor's control port on some setups.
+9042	tcp	cassandra	local-strict	Cassandra CQL. Default install has authentication disabled.
+9050	tcp	tor-socks	local	Tor SOCKS proxy. Expected if you run Tor; exposed it is an open anonymising relay for others.
+9051	tcp	tor-control	local-strict	Tor control port. Whoever reaches it controls your Tor client, including where traffic goes.
+9090	tcp	cockpit	local	Cockpit web console (root-level host management) or Prometheus.
+9092	tcp	kafka	sensitive	Kafka broker. Usually unauthenticated inside a trust boundary.
+9100	tcp	jetdirect	dangerous	Raw printing (JetDirect). Accepts arbitrary PostScript/PJL; also Prometheus node_exporter on some hosts.
+9200	tcp	elasticsearch	local-strict	Elasticsearch HTTP API. Unauthenticated by default in older versions - full data read and write.
+9300	tcp	elasticsearch-transport	local-strict	Elasticsearch cluster transport. Joining the cluster is enough to read everything.
+9999	tcp	ad-hoc	sensitive	No standard service. Common for hand-rolled listeners and CTF challenges.
+10000	tcp	webmin	sensitive	Webmin. Root-level host administration over the web; several unauthenticated RCEs.
+11211	any	memcached	local-strict	Memcached. No authentication, and the single worst UDP amplification reflector on the internet.
+27017	tcp	mongodb	local-strict	MongoDB. Historically bound to 0.0.0.0 with no authentication; the reason for a decade of data leaks.
+27018	tcp	mongodb-shard	local-strict	MongoDB shard server.
+31337	tcp	elite	malware	Back Orifice and about a thousand imitators. Not a real service.
+12345	tcp	netbus	malware	NetBus backdoor's default port, and a favourite of hand-placed listeners.
+12346	tcp	netbus-alt	malware	NetBus secondary port.
+27374	tcp	sub7	malware	SubSeven backdoor default port.
+50000	tcp	ad-hoc	sensitive	SAP, DB2 and a lot of ad-hoc listeners. Identify the process.
+54321	tcp	ad-hoc	malware	No legitimate service. Common backdoor/CTF port.

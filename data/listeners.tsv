@@ -1,0 +1,85 @@
+# Process names that change the meaning of a listening port.
+#
+# When ss/netstat/lsof output names the owning process, the port finding picks up the
+# description below. A severity of NOTICE or worse also raises the finding to at least
+# that level - a normal port served by netcat is not a normal port.
+#
+# severity  OK | INFO | NOTICE | WARN | CRITICAL   (OK/INFO only annotate, never escalate)
+#
+process	severity	description
+sshd	OK	OpenSSH server, the expected owner of 22.
+nginx	OK	nginx web server.
+apache2	OK	Apache httpd.
+httpd	OK	Apache httpd.
+lighttpd	OK	lighttpd web server.
+caddy	OK	Caddy web server.
+systemd-resolve	OK	systemd's stub DNS resolver, normally on 127.0.0.53:53.
+systemd-resolved	OK	systemd's stub DNS resolver.
+dnsmasq	OK	Lightweight DNS/DHCP server, common on routers and libvirt bridges.
+named	OK	BIND DNS server.
+unbound	OK	Unbound recursive DNS resolver.
+avahi-daemon	OK	mDNS/Bonjour service discovery.
+cupsd	OK	CUPS print server.
+chronyd	OK	NTP time sync daemon.
+ntpd	OK	NTP time sync daemon.
+dhclient	OK	DHCP client, the expected owner of udp/68.
+NetworkManager	OK	NetworkManager, may hold DHCP and DNS sockets.
+wpa_supplicant	OK	Wi-Fi authentication daemon.
+postgres	OK	PostgreSQL server (Metasploit's msfdb also runs here).
+mysqld	OK	MySQL/MariaDB server.
+mariadbd	OK	MariaDB server.
+redis-server	OK	Redis server.
+mongod	OK	MongoDB server.
+docker-proxy	INFO	Docker's userland port forwarder - a published container port, not a host service.
+dockerd	INFO	Docker daemon. Anyone who can talk to it is effectively root on the host.
+containerd	INFO	containerd runtime.
+libvirtd	INFO	libvirt daemon, usually with dnsmasq on a virtual bridge.
+cups-browsed	OK	CUPS printer discovery.
+smbd	INFO	Samba file server. Check the shares and whether guest access is on.
+nmbd	INFO	Samba NetBIOS name server.
+rpcbind	INFO	RPC portmapper.
+master	OK	Postfix master process.
+exim4	INFO	Exim mail server. Keep it patched; it has a history of remote root bugs.
+cockpit-ws	INFO	Cockpit web console - root-level host management over the browser.
+tor	INFO	Tor daemon.
+privoxy	INFO	Privoxy filtering proxy.
+squid	INFO	Squid proxy.
+java	NOTICE	A JVM is the listener. Fine for a real application, but also how Burp, Metasploit modules and half of all appliances look.
+python	NOTICE	A Python process is the listener. Dev server, or a shell handler - check the command line with ps.
+python2	NOTICE	A Python process is the listener. Check the command line with ps.
+python3	NOTICE	A Python process is the listener. Dev server, or a shell handler - check the command line with ps.
+perl	NOTICE	A Perl process is the listener. Rarely a real service on a modern host.
+ruby	NOTICE	A Ruby process is the listener (Rails, or a Metasploit component).
+php	NOTICE	A PHP process is the listener.
+node	NOTICE	A Node.js process is the listener.
+nc	WARN	netcat is listening. That is a raw socket relay, not a service - almost always a shell or a pivot.
+ncat	WARN	Ncat is listening. Raw socket relay: a shell, a pivot, or a file transfer.
+netcat	WARN	netcat is listening. Raw socket relay, not a service.
+nc.traditional	WARN	netcat (traditional) is listening, with -e support compiled in.
+socat	WARN	socat is listening. General-purpose socket relay - commonly an upgraded reverse shell.
+msfconsole	WARN	Metasploit is holding this port. Expected if you started the handler, not otherwise.
+ruby-msf	WARN	A Metasploit component is holding this port.
+chisel	CRITICAL	chisel tunnel endpoint. This is a pivot/egress channel, not a service.
+ligolo	CRITICAL	ligolo tunnel endpoint. Pivoting agent.
+ligolo-ng	CRITICAL	ligolo-ng tunnel endpoint. Pivoting agent.
+frpc	CRITICAL	frp client. Exposes local services through an external relay.
+frps	CRITICAL	frp server. Relay endpoint for tunnelled services.
+ngrok	CRITICAL	ngrok agent. Publishes a local port to the public internet through a third party.
+gost	CRITICAL	gost tunnel/proxy. Pivoting and egress tool.
+iodine	CRITICAL	DNS tunnel endpoint. Covert channel.
+iodined	CRITICAL	DNS tunnel server. Covert channel.
+dnscat2	CRITICAL	DNS tunnel C2 endpoint.
+sliver	CRITICAL	Sliver C2 implant or server.
+merlin	CRITICAL	Merlin C2 component.
+covenant	CRITICAL	Covenant C2 component.
+empire	CRITICAL	Empire C2 component.
+bash	CRITICAL	A shell is bound to a socket. There is no legitimate reason for this.
+sh	CRITICAL	A shell is bound to a socket. There is no legitimate reason for this.
+zsh	CRITICAL	A shell is bound to a socket. There is no legitimate reason for this.
+busybox	WARN	busybox is the listener - often the httpd or telnetd applet on embedded devices, and a favourite of IoT malware.
+telnetd	WARN	A telnet server is running. Cleartext logins.
+in.telnetd	WARN	A telnet server is running. Cleartext logins.
+vsftpd	INFO	vsftpd FTP server. Check whether anonymous access is enabled.
+proftpd	INFO	ProFTPD server.
+xinetd	NOTICE	xinetd is fronting this port - look in /etc/xinetd.d to see what it launches.
+inetd	NOTICE	inetd is fronting this port - check /etc/inetd.conf.

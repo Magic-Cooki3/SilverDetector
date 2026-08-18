@@ -1,0 +1,96 @@
+# SUID/SGID binaries that a stock Linux install actually ships.
+#
+# Anything in a -perm -4000 / -2000 hunt that is NOT in here and NOT in gtfobins.tsv gets
+# flagged as unknown, so keep this file honest: add the ones your distro really ships
+# (pacman -Qo <path> / dpkg -S <path> will tell you which package owns it).
+#
+# bits      suid | sgid | suid,sgid | any        ("any" = the distro varies, do not compare)
+# severity  OK | INFO | NOTICE | WARN | CRITICAL  (default OK)
+#
+path	bits	purpose	severity	description
+/usr/bin/su	suid	switch user	OK	Switches to another user account after authenticating. Needs SUID root to read the shadow file and change uid.
+/bin/su	suid	switch user	OK	Same as /usr/bin/su on systems without /usr merge.
+/usr/bin/sudo	suid	run a command as another user	OK	Runs commands as root per /etc/sudoers. Check "sudo -l" for what your user is allowed - that list is usually more interesting than the bit itself.
+/usr/bin/sudoedit	suid	edit files as another user	OK	sudo's editor front end (CVE-2021-3156 and CVE-2023-22809 both lived here - keep sudo patched).
+/usr/bin/passwd	suid	change your password	OK	Writes to /etc/shadow, which is root-only, so it needs the bit.
+/usr/bin/chsh	suid	change your login shell	OK	Edits your /etc/passwd entry.
+/usr/bin/chfn	suid	change your name/office fields	OK	Edits the GECOS fields in /etc/passwd.
+/usr/bin/gpasswd	suid	group password administration	OK	Manages /etc/group and /etc/gshadow.
+/usr/bin/newgrp	suid	switch primary group	OK	Starts a shell with a different primary group.
+/usr/bin/sg	suid	run a command under another group	OK	newgrp's non-interactive twin.
+/usr/bin/chage	any	password ageing	OK	Reads and writes shadow ageing fields. SGID shadow on Debian, plain root-only on Arch.
+/usr/bin/expiry	sgid	password expiry check	OK	Checks password ageing; SGID shadow.
+/usr/bin/mount	suid	mount filesystems	OK	Mounts what /etc/fstab marks "user". A very common escalation target when fstab allows suid mounts.
+/bin/mount	suid	mount filesystems	OK	Same as /usr/bin/mount without /usr merge.
+/usr/bin/umount	suid	unmount filesystems	OK	Counterpart to mount.
+/bin/umount	suid	unmount filesystems	OK	Counterpart to mount.
+/usr/bin/mount.nfs	suid	NFS mount helper	OK	Binds a privileged source port for NFS mounts.
+/usr/sbin/mount.nfs	suid	NFS mount helper	OK	Binds a privileged source port for NFS mounts.
+/usr/bin/mount.cifs	suid	SMB mount helper	OK	Mounts SMB shares as a normal user.
+/usr/sbin/mount.cifs	suid	SMB mount helper	OK	Mounts SMB shares as a normal user.
+/usr/bin/ntfs-3g	suid	NTFS mount helper	NOTICE	Mounts NTFS volumes in userspace. Older versions had local root bugs (CVE-2017-0358, CVE-2022-40284) - check the version.
+/usr/bin/fusermount	suid	FUSE mount helper	OK	Lets a user mount and unmount FUSE filesystems.
+/usr/bin/fusermount3	suid	FUSE mount helper	OK	libfuse3 version of fusermount.
+/usr/bin/pkexec	suid	polkit privilege escalation	NOTICE	polkit's "run as another user" helper. This is PwnKit (CVE-2021-4034) - confirm polkit is newer than 0.120 before you trust it.
+/usr/bin/polkit-agent-helper-1	suid	polkit authentication agent	OK	Authenticates the user on behalf of polkit.
+/usr/lib/polkit-1/polkit-agent-helper-1	suid	polkit authentication agent	OK	Authenticates the user on behalf of polkit.
+/usr/libexec/polkit-agent-helper-1	suid	polkit authentication agent	OK	Authenticates the user on behalf of polkit (Fedora path).
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper	suid	D-Bus system service launcher	OK	Starts system D-Bus services as the configured user.
+/usr/libexec/dbus-1/dbus-daemon-launch-helper	suid	D-Bus system service launcher	OK	Starts system D-Bus services as the configured user.
+/usr/lib/openssh/ssh-keysign	suid	host-based SSH auth	OK	Signs with the host key during host-based authentication.
+/usr/lib/ssh/ssh-keysign	suid	host-based SSH auth	OK	Signs with the host key during host-based authentication (Arch path).
+/usr/libexec/openssh/ssh-keysign	suid	host-based SSH auth	OK	Signs with the host key during host-based authentication.
+/usr/bin/ssh-agent	sgid	SSH key agent	OK	SGID so ptrace protections apply to the process holding your keys.
+/usr/bin/ping	any	ICMP echo	OK	Needs raw sockets. Modern distros use cap_net_raw instead of SUID, so both forms are normal.
+/bin/ping	any	ICMP echo	OK	Needs raw sockets; SUID on older systems, capabilities on newer ones.
+/usr/bin/ping6	any	ICMPv6 echo	OK	IPv6 ping; same reasoning as ping.
+/usr/bin/arping	any	ARP ping	OK	Needs raw sockets.
+/usr/bin/traceroute6.iputils	any	IPv6 traceroute	OK	Needs raw sockets.
+/usr/bin/clockdiff	any	clock comparison	OK	Needs raw sockets; part of iputils.
+/usr/bin/mtr-packet	any	mtr packet engine	OK	Raw socket helper for mtr.
+/usr/bin/at	suid	schedule a one-off job	OK	Writes into the at spool. Check /etc/at.allow and /etc/at.deny.
+/usr/bin/crontab	any	edit your crontab	OK	Writes into the cron spool directory. SUID on some distros, SGID crontab on others.
+/usr/bin/wall	sgid	message all terminals	OK	SGID tty so it can write to other users' terminals.
+/usr/bin/write	sgid	message a terminal	OK	SGID tty so it can write to another user's terminal.
+/usr/bin/bsd-write	sgid	message a terminal	OK	Debian's write; SGID tty.
+/usr/bin/unix_chkpwd	sgid	PAM password check	OK	Helper that verifies a password against the shadow file; SGID shadow.
+/usr/sbin/unix_chkpwd	sgid	PAM password check	OK	Helper that verifies a password against the shadow file; SGID shadow.
+/usr/sbin/pam_extrausers_chkpwd	sgid	PAM password check	OK	Same as unix_chkpwd for the extrausers module.
+/usr/bin/locate	sgid	filename search	OK	SGID so it can read the locate database.
+/usr/bin/mlocate	sgid	filename search	OK	SGID mlocate for the shared index.
+/usr/bin/plocate	sgid	filename search	OK	SGID plocate for the shared index.
+/usr/bin/screen	sgid	terminal multiplexer	NOTICE	SGID utmp on Debian so it can update login records. Several past local root bugs when it was SUID - it should not be SUID today.
+/usr/bin/dotlockfile	sgid	mailbox locking	OK	SGID mail for locking mail spools.
+/usr/bin/mail-lock	sgid	mailbox locking	OK	SGID mail.
+/usr/bin/mail-unlock	sgid	mailbox locking	OK	SGID mail.
+/usr/bin/mail-touchlock	sgid	mailbox locking	OK	SGID mail.
+/usr/bin/lockfile	sgid	mailbox locking	OK	procmail's locking helper; SGID mail.
+/usr/lib/utempter/utempter	sgid	utmp bookkeeping	OK	Updates utmp for terminal emulators; SGID utmp.
+/usr/lib/xorg/Xorg.wrap	suid	X server wrapper	OK	Decides whether the user may start an X server, then drops privileges.
+/usr/lib/Xorg.wrap	suid	X server wrapper	OK	Decides whether the user may start an X server.
+/usr/bin/Xorg.wrap	suid	X server wrapper	OK	Decides whether the user may start an X server.
+/usr/lib/eject/dmcrypt-get-device	suid	eject helper	OK	Resolves the underlying device for encrypted volumes.
+/usr/bin/newuidmap	any	user namespace uid mapping	OK	Writes uid_map for rootless containers; SUID on some distros, cap_setuid on others.
+/usr/bin/newgidmap	any	user namespace gid mapping	OK	Writes gid_map for rootless containers.
+/usr/bin/staprun	suid	SystemTap runner	NOTICE	Loads SystemTap kernel modules. If your user is in the stapusr/stapdev group this is a direct route to kernel code execution.
+/usr/bin/pppd	suid	PPP dial-up daemon	NOTICE	Sets up PPP links. CVE-2020-8597 was a remote root here; only expected if you actually use PPP/PPTP.
+/usr/sbin/pppd	suid	PPP dial-up daemon	NOTICE	Sets up PPP links; only expected if you use PPP.
+/usr/sbin/exim4	suid	mail transfer agent	NOTICE	Exim needs the bit to write mail spools. Long history of local root bugs - keep it patched or remove it.
+/usr/sbin/postdrop	sgid	Postfix mail submission	OK	SGID postdrop to write into the maildrop queue.
+/usr/sbin/postqueue	sgid	Postfix queue tool	OK	SGID postdrop to inspect the queue.
+/usr/lib/apache2/suexec	suid	Apache CGI wrapper	NOTICE	Runs CGI scripts as another user. Only expected if you run Apache with suexec.
+/usr/sbin/suexec	suid	Apache CGI wrapper	NOTICE	Runs CGI scripts as another user.
+/usr/bin/procmail	suid	mail delivery agent	NOTICE	Local mail delivery. Unmaintained upstream; only expected on a mail host.
+/usr/bin/vmware-user-suid-wrapper	suid	VMware guest tools	OK	Part of open-vm-tools inside a VMware guest.
+/usr/bin/VBoxClient	suid	VirtualBox guest additions	OK	Part of the VirtualBox guest additions.
+/usr/bin/gnome-keyring-daemon	any	keyring daemon	OK	Historically SUID or cap_ipc_lock so it could lock secrets into non-swappable memory.
+/usr/bin/kismet_cap_linux_wifi	suid	Kismet capture helper	NOTICE	Kismet's Wi-Fi capture source. Expected on a pentest build, unusual anywhere else.
+/usr/bin/kismet_cap_linux_bluetooth	suid	Kismet capture helper	NOTICE	Kismet's Bluetooth capture source. Expected on a pentest build.
+/usr/bin/kismet_cap_nrf_mousejack	suid	Kismet capture helper	NOTICE	Kismet's nRF capture source. Expected on a pentest build.
+/usr/sbin/pam_timestamp_check	suid	PAM timestamp helper	OK	Checks the sudo-style timestamp files.
+/usr/bin/umount.udisks2	suid	udisks unmount helper	OK	Unmounts removable media on behalf of the desktop session.
+/var/mail	sgid	mail spool directory	OK	SGID mail directory so delivery agents can create mailboxes. Directory, not a binary.
+/var/spool/mail	sgid	mail spool directory	OK	SGID mail directory. Directory, not a binary.
+/tmp	sticky	world-writable temp directory	OK	Sticky bit set: everyone can write, only the owner can delete their own files. This is correct for /tmp.
+/var/tmp	sticky	world-writable temp directory	OK	Sticky bit set, same as /tmp.
+/dev/shm	sticky	shared memory	OK	Sticky bit set, same as /tmp.
