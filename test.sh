@@ -4,7 +4,9 @@ set -eu
 
 here=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 cd "$here"
-[ -f silverdetector.jar ] || ./build.sh >/dev/null
+# Always rebuild, so the tests run against the current source and data - never a stale jar left
+# over from an older version (that produces confusing "detector runs but finds nothing" failures).
+./build.sh >/dev/null || { echo "test.sh: build failed - fix the compile error above" >&2; exit 1; }
 
 sd() {
     SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar "$@" 2>/dev/null

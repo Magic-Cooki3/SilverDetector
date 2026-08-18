@@ -196,32 +196,51 @@ public final class CronDetector implements Detector {
         String scriptPath = program.startsWith("/") ? program : null;
         String writable = scriptPath != null ? WritableDirs.match(scriptPath) : null;
 
+        String who = root ? "root" : runAs;
         Severity severity = Severity.OK;
         String label = "scheduled job";
-        String detail = "A cron job. Nothing structurally wrong on its face - the risk is in what "
-                + "the command points at.";
+        String detail;
         List<String> notes = new ArrayList<>();
 
         if (writable != null) {
             severity = root ? Severity.CRITICAL : Severity.WARN;
             label = "cron runs a script from a writable location";
             detail = "The job runs " + scriptPath + ", which is under " + writable + " where a "
-                    + "lower-privileged user can write. Overwrite that file and its contents run "
-                    + (root ? "as root" : "as " + runAs) + " on the next tick.";
+                    + "lower-privileged user can write. Overwrite that file and its contents run as "
+                    + who + " on the next tick.";
             notes.add("next: check write access with 'ls -l " + scriptPath + "' and the directory "
                     + "above it, then replace the script body");
         } else if (isSystemRunParts(command)) {
-            severity = Severity.OK;
             label = "standard cron.d/run-parts job";
-            detail = "Runs the scripts in a system cron directory (cron.hourly/daily/...). Expected; "
-                    + "the scripts themselves are what to audit.";
+            detail = "Runs the scripts in a system cron directory (cron.hourly/daily/weekly). Normal "
+                    + "on every box - whether it is safe comes down to the scripts inside those "
+                    + "directories, not this line.";
+            notes.add("verdict: normal. To rule it out, run 'ls -ld /etc/cron.hourly /etc/cron.daily "
+                    + "/etc/cron.d/*' - if any of those scripts or directories is writable by you, it "
+                    + "runs as " + who + "; if none are, ignore this.");
         } else if (scriptPath == null && isHijackableName(program)) {
             severity = root ? Severity.NOTICE : Severity.INFO;
             label = "cron runs a relative command";
-            detail = "The command '" + program + "' has no absolute path, so it is resolved through "
-                    + "cron's PATH. If any earlier PATH directory is writable, you control what runs "
-                    + (root ? "as root" : "as " + runAs) + ".";
-            notes.add("next: note the PATH= line above and check each directory for write access");
+            detail = "The command '" + program + "' has no absolute path, so cron resolves it through "
+                    + "its PATH. If any earlier PATH directory is writable, you control what runs as "
+                    + who + ".";
+            notes.add("check: note the PATH= line above and test each directory with 'test -w <dir>'; "
+                    + "a writable one lets you plant a '" + program + "' that runs as " + who + ". If "
+                    + "PATH is all root-owned, ignore this.");
+        } else if (scriptPath != null) {
+            label = "scheduled job (looks normal)";
+            detail = "A cron job running as " + who + " that points at " + scriptPath + ". Nothing in "
+                    + "the line itself is exploitable - the only thing that would make it dangerous is "
+                    + "if you can write that script or the directory holding it.";
+            notes.add("check: 'ls -ld " + scriptPath + "' and its parent directory. Writable by you "
+                    + "(or a group you are in) => overwrite it and it runs as " + who + " next tick. "
+                    + "Not writable => normal, ignore it.");
+        } else {
+            label = "scheduled job (looks normal)";
+            detail = "A cron job running as " + who + ": " + shorten(command) + ". Nothing in the "
+                    + "line itself is exploitable.";
+            notes.add("check: whether any script, config file or binary this command reads or runs is "
+                    + "writable by you. If not, this is normal - ignore it.");
         }
 
         String base = firstWord(command);

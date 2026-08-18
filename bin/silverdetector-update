@@ -94,7 +94,8 @@ echo "update: backed up the current install to $backup"
 # --- 5. swap in the new files --------------------------------------------------------
 # Replace whole directories, then the top-level scripts. ~/.config overrides are elsewhere and
 # stay put. This script is running from a temp copy, so replacing bin/ underneath us is safe.
-for dir in src data docs; do
+# samples/ is included so the shipped test fixtures track the code (test.sh depends on them).
+for dir in src data docs samples; do
     if [ -d "$newroot/$dir" ]; then
         rm -rf "$root/$dir"
         cp -a "$newroot/$dir" "$root/"

@@ -64,9 +64,18 @@ if ! command -v java >/dev/null 2>&1; then
     exit 2
 fi
 
+# Build on first run, and REBUILD when the source is newer than the jar - so a `git pull`
+# (or any code change) is picked up automatically instead of silently running the old jar.
+# Only src/ and build.sh matter here; data/*.tsv is layered in at runtime, no rebuild needed.
+needs_build=0
 if [ ! -f "$jar" ]; then
-    echo "silverdetector: building silverdetector.jar (first run)..." >&2
-    "$root/build.sh" >&2
+    needs_build=1
+elif [ -n "$(find "$root/src" "$root/build.sh" -newer "$jar" 2>/dev/null | head -n1)" ]; then
+    needs_build=1
+fi
+if [ "$needs_build" = 1 ]; then
+    echo "silverdetector: (re)building silverdetector.jar ..." >&2
+    "$root/build.sh" >&2 || { echo "silverdetector: build failed - see the error above" >&2; exit 2; }
 fi
 
 run() {
