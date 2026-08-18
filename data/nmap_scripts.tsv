@@ -1,0 +1,46 @@
+# Nmap NSE script results, keyed on the script id (the name before the ':' in a "| script:"
+# block). The nmapscripts detector reads a scripted scan (-sC / -sV / -A / --script) and explains
+# what each script found and where to take it. Any *-vuln-* script that reports VULNERABLE but is
+# NOT in this table still gets flagged generically - this table just adds detail for the common
+# ones.
+#
+# kind:  vuln  = report only when the script says VULNERABLE
+#        info  = report whenever the script appears (it is disclosing something useful)
+#
+# script                 kind  severity  title  meaning  next
+script	kind	severity	title	meaning	next
+ssl-heartbleed	vuln	CRITICAL	Heartbleed (CVE-2014-0160)	The TLS heartbeat bug leaks up to 64KB of server memory per request - private keys, session cookies, credentials.	loop the heartbeat and harvest memory (metasploit ssl_heartbleed)
+ssl-poodle	vuln	WARN	POODLE - SSLv3 (CVE-2014-3566)	SSLv3 is enabled and vulnerable to a padding-oracle that recovers plaintext a byte at a time.	force an SSLv3 downgrade; then disable SSLv3
+ssl-ccs-injection	vuln	WARN	CCS Injection (CVE-2014-0224)	OpenSSL accepts an early ChangeCipherSpec, letting a MITM force weak keys.	MITM and decrypt/alter the session
+ssl-dh-params	vuln	NOTICE	Weak Diffie-Hellman (Logjam)	Export-grade or weak DH parameters let a MITM break the key exchange.	Logjam downgrade; require strong DH
+http-shellshock	vuln	CRITICAL	Shellshock (CVE-2014-6271)	A CGI reachable over HTTP passes attacker input into a vulnerable bash - remote command execution.	curl -H 'User-Agent: () { :;}; <cmd>' http://host/cgi-bin/x
+http-vuln-cve2017-5638	vuln	CRITICAL	Apache Struts2 (CVE-2017-5638)	Content-Type OGNL injection in Struts2 - unauthenticated remote code execution.	metasploit struts2_content_type_ognl
+http-vuln-cve2015-1635	vuln	CRITICAL	HTTP.sys (MS15-034 / CVE-2015-1635)	IIS HTTP.sys range bug - remote code execution / DoS.	send the crafted Range header PoC
+http-vuln-cve2014-3704	vuln	CRITICAL	Drupalgeddon (CVE-2014-3704)	Pre-auth SQL injection in Drupal 7 leading to admin takeover / RCE.	drupalgeddon exploit
+http-git	vuln	WARN	Exposed .git directory	A web-exposed .git lets you reconstruct the source, often with secrets.	git-dumper http://host/.git ./src
+smb-vuln-ms17-010	vuln	CRITICAL	EternalBlue (MS17-010)	Remote code execution as SYSTEM over SMBv1 - the WannaCry bug.	metasploit ms17_010_eternalblue
+smb-vuln-ms08-067	vuln	CRITICAL	MS08-067	The classic NetAPI remote code execution as SYSTEM.	metasploit ms08_067_netapi
+smb-vuln-cve-2020-0796	vuln	CRITICAL	SMBGhost (CVE-2020-0796)	An SMBv3 compression bug - remote code execution / local privesc on Windows 10 / Server.	SMBGhost PoC (confirm the build)
+rdp-vuln-ms12-020	vuln	WARN	RDP MS12-020	A pre-auth RDP DoS (long-rumoured RCE); in practice a denial of service.	note for the report; usually DoS only
+mysql-empty-password	vuln	CRITICAL	MySQL root with no password	MySQL accepts root with an empty password.	mysql -u root ; then a UDF for command exec or dump creds
+ms-sql-empty-password	vuln	CRITICAL	MSSQL login with no password	An MSSQL account (often sa) has a blank password.	mssqlclient sa@host ; enable xp_cmdshell
+ftp-anon	info	WARN	Anonymous FTP allowed	Login as anonymous with any password - browse and download without credentials.	ftp <host> (user anonymous)
+ftp-vsftpd-backdoor	vuln	CRITICAL	vsftpd 2.3.4 backdoor (CVE-2011-2523)	The smiley backdoor opens a root shell on port 6200.	metasploit vsftpd_234_backdoor
+clamav-exec	vuln	CRITICAL	ClamAV command execution	A vulnerable clamd that allows command execution.	the matching public exploit
+smb-os-discovery	info	INFO	SMB OS discovery	Reveals the Windows version, hostname and domain over SMB.	feed the OS/build to a kernel-exploit search (wesng)
+smb-security-mode	info	NOTICE	SMB signing config	Shows message signing; "signing disabled/not required" enables SMB relay.	ntlmrelayx.py with Responder if signing is off
+smb2-security-mode	info	NOTICE	SMB2 signing config	As smb-security-mode, for SMB2/3.	ntlmrelayx.py if signing is not required
+smb-enum-shares	info	NOTICE	SMB shares enumerable	Shares are listable - check each for read/write access.	smbmap -H <host>
+smb-enum-users	info	NOTICE	SMB users enumerable	Account names are enumerable - feed a password spray or AS-REP roast.	enum4linux -a <host> ; kerbrute
+http-methods	info	NOTICE	HTTP methods allowed	Lists the enabled methods; PUT / DELETE / TRACE among them are dangerous.	test PUT for a web-shell upload
+http-title	info	INFO	HTTP page title	The title often names the app and version - a lead for a version-specific exploit.	identify the app; search its CVEs
+http-robots.txt	info	INFO	robots.txt disallow list	Disallowed paths frequently point at admin panels and hidden endpoints.	browse each disallowed path
+http-enum	info	NOTICE	HTTP enumeration hits	nmap found interesting web paths (admin pages, known apps).	visit each and fingerprint the app
+dns-recursion	info	NOTICE	Open DNS recursion	The resolver answers recursive queries for anyone - a DDoS amplifier and cache-poisoning target.	note for the report; don't expose recursion
+ssl-cert	info	INFO	TLS certificate	The certificate reveals hostnames / SANs and validity - internal names, self-signed, expiry.	note the SANs and any internal hostnames
+ssh-hostkey	info	INFO	SSH host keys	Host-key fingerprints - useful to identify the host and spot a MITM.	record for host identification
+ssh-auth-methods	info	NOTICE	SSH auth methods	Shows accepted auth (password vs key); password auth invites spraying.	spray creds if password auth is offered
+ssh2-enum-algos	info	INFO	SSH algorithms	Lists key-exchange / cipher algorithms; weak legacy ones are downgrade targets.	note weak algorithms for the report
+vulners	info	NOTICE	Vulners CVE list	nmap's vulners script matched the detected version to a list of CVEs.	look each CVE up / searchsploit the version
+snmp-info	info	NOTICE	SNMP exposed	SNMP answered - community strings often reveal inventory, or grant write access.	snmpwalk -c public / -c private <host>
+mongodb-databases	info	CRITICAL	MongoDB without authentication	Mongo answered without credentials - every database is readable.	mongo <host> ; show dbs ; dump them

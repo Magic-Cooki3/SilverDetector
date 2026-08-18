@@ -57,6 +57,8 @@ box — the same list a learner meets working through a CTF or a HackTheBox mach
 | `kernel` | `uname -a`, `uname -r`, `cat /proc/version`                        | The running kernel matched **automatically** against known local-privesc CVEs — Dirty COW, Dirty Pipe, the netfilter/nf_tables bugs — with the affected range |
 | `ports`  | `ss -tulpn`, `netstat -tulpn`, `nmap` (normal or `-oG`), `lsof -i`, a bare list of ports | What each port is for, whether it is bound to loopback or the whole network, whether the process holding it makes sense |
 | `winprivesc` | **winPEAS** output, `whoami /priv`, `whoami /groups`, `sc qc`, `reg query`, any Windows enum dump | The whole HackTricks Windows-privesc checklist as ~40 signatures: token privileges (SeImpersonate → Potato), privileged groups, AlwaysInstallElevated, unquoted/modifiable services, WDigest, GPP/autologon/SAM/unattend credentials, DLL hijacking, and more — each with what it is and the next step |
+| `linprivesc` | **linPEAS** output, or a Linux enum dump | The Linux-privesc checklist items the structured detectors don't already cover: writable `/etc/passwd`/`sudoers`/systemd units, `no_root_squash`, the docker socket, `ld.so.preload`, SSH keys, secrets, and the CVE tags linPEAS prints (PwnKit, Dirty Pipe, …) |
+| `nmapscripts` | **nmap** `-sC`/`-sV`/`-A`/`--script` output (the `\| script:` blocks) | Every NSE script result explained — Heartbleed, Shellshock, MS17-010, ftp-anon, http-methods, smb-os-discovery, and any `*-vuln-*` script that says VULNERABLE even if it's not in the table |
 
 Paste more than one at a time if you like — each format is detected and reported separately, so
 a whole enumeration dump goes in at once and comes back split by tool.
@@ -69,13 +71,20 @@ it is and where to look.
 - **winPEAS**: the `winprivesc` detector reads the whole run and maps every interesting line to
   the checklist — winPEAS colours lines by interest, this says *why each one matters and what to
   do next*.
-- **linPEAS**: recognised and routed to the Linux detectors — a linPEAS paste lights up `setuid`,
-  `sudo`, `caps`, `cron`, `kernel`, `passwd`/`shadow` at once, each with its usual explanation and
-  the matching CVEs.
+- **linPEAS**: handled two ways at once — the `linprivesc` signature engine explains the
+  checklist items unique to it (writable sensitive files, NFS, the docker socket, `ld.so.preload`,
+  keys, the CVE tags it prints), **and** the structured detectors (`setuid`, `sudo`, `caps`,
+  `cron`, `kernel`, `passwd`/`shadow`) pick up the embedded sections with their usual explanations
+  and CVEs. One paste, both.
+- **nmap**: a plain port scan is read by `ports` (plus `smb`/`ftp` for versions); a scripted scan
+  (`-sC`/`-A`/`--script`) additionally runs `nmapscripts`, which explains the NSE `| script:`
+  results and flags *any* script that reports VULNERABLE — even one it's never seen — so an
+  unfamiliar result never slides past.
 
 ```sh
 silverfinder winpeas_out.txt        # or:  .\winPEASany.exe | silverfinder   (paste it over)
 silverfinder -q linpeas_out.txt     # anomalies only
+silverfinder nmap_-A_target.txt     # NSE script results explained
 ```
 
 ### Automatic CVE matching
@@ -149,6 +158,8 @@ data/http_headers.tsv  which HTTP headers matter and why
 data/windows_signatures.tsv  regex -> Windows privesc finding (the checklist engine)
 data/windows_privileges.tsv  Windows token privileges -> exploitation
 data/windows_groups.tsv      privileged Windows groups
+data/linux_signatures.tsv    regex -> Linux privesc finding (the linPEAS engine)
+data/nmap_scripts.tsv        NSE script id -> what it found and where to look
 ```
 
 `windows_signatures.tsv` is a plain regex-per-row table, so covering one more Windows check —
@@ -234,5 +245,5 @@ floor with `SILVERDETECTOR_RELEASE=21 ./build.sh` if you ever need to. (`--updat
 `curl`/`wget` and `unzip`, falling back to the JDK's `jar` — all standard on a pentest box.)
 
 ```sh
-./test.sh             # 140 checks over the samples, detectors, updater and override behaviour
+./test.sh             # 156 checks over the samples, detectors, updater and override behaviour
 ```

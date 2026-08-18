@@ -10,6 +10,8 @@ import silverdetector.detect.FtpDetector;
 import silverdetector.detect.GroupsDetector;
 import silverdetector.detect.HttpDetector;
 import silverdetector.detect.KernelDetector;
+import silverdetector.detect.LinuxPrivescDetector;
+import silverdetector.detect.NmapScriptsDetector;
 import silverdetector.detect.PasswdDetector;
 import silverdetector.detect.PortsDetector;
 import silverdetector.detect.SetuidDetector;
@@ -35,11 +37,13 @@ public final class DetectorRegistry {
         List<Detector> detectors = new ArrayList<>();
 
         detectors.add(new WindowsPrivescDetector()); // winPEAS / whoami /priv / Windows enum
+        detectors.add(new LinuxPrivescDetector());   // linPEAS / Linux enum (writable files, NFS, docker, CVE tags)
         detectors.add(new SetuidDetector());        // find / -perm -4000 (and -2000)
         detectors.add(new GroupsDetector());        // id
         detectors.add(new SudoDetector());          // sudo -l
         detectors.add(new SmbDetector());           // smbclient -L / enum4linux / nmap smb-*
         detectors.add(new FtpDetector());           // FTP banners  (auto CVE match)
+        detectors.add(new NmapScriptsDetector());   // nmap NSE script results (-sC / -A / --script)
         detectors.add(new PortsDetector());         // ss / netstat / nmap / lsof
         detectors.add(new CapabilitiesDetector());  // getcap -r /
         detectors.add(new HttpDetector());          // curl -i / raw HTTP  (auto CVE match)

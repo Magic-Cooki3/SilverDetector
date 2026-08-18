@@ -174,10 +174,16 @@ The shipped detectors each show a technique you will probably want:
   Copy this whenever "recognise a version, name its CVEs" is the job (`ftp`, `smb`, `http` all do).
 - **`SmbDetector`** — carries state across lines (an nmap `smb-vuln-*` script id on one line, its
   `State: VULNERABLE` on another) and dedupes repeated findings.
-- **`WindowsPrivescDetector` + `windows_signatures.tsv`** — a *signature engine*: the detector is
-  small and generic, and all the knowledge is a regex-per-row table. This is the pattern to copy
-  when "match a lot of independent tells in a big blob" is the job (a winPEAS/linPEAS-style dump).
-  Adding a check is one TSV row; the code never changes.
+- **`WindowsPrivescDetector` / `LinuxPrivescDetector` + the shared `Signatures` helper** — a
+  *signature engine*: the detectors are thin, and all the knowledge is a regex-per-row table
+  (`windows_signatures.tsv`, `linux_signatures.tsv`). This is the pattern to copy when "match a
+  lot of independent tells in a big blob" is the job (a winPEAS/linPEAS-style dump). Adding a
+  check is one TSV row; the code never changes. `Signatures` (load / anyMatch / scan / clean,
+  including ANSI stripping) is the reusable core.
+- **`NmapScriptsDetector` + `nmap_scripts.tsv`** — a *stateful* reader: it tracks the current NSE
+  script id across `|` lines and fires on a later `State: VULNERABLE`, with a keyed table for the
+  known scripts and a generic catch for the rest. Copy it when the meaning of a line depends on an
+  earlier line, and you want unknown-but-clearly-bad results surfaced too.
 
 Copy whichever is closest to your input's shape. Note how many of these **share a table**: add a
 GTFOBins binary, a writable directory, or a CVE range once and every detector that reads that

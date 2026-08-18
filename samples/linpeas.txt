@@ -21,3 +21,19 @@ strace Not Found
 ╔══════════╣ Capabilities
 Files with capabilities:
 /usr/bin/python2.7 = cap_setuid+ep
+
+╔══════════╣ Analyzing Interesting writable files
+    /etc/passwd is writable
+    /etc/exports: /srv/share *(rw,no_root_squash)
+
+╔══════════╣ Searching docker
+    /var/run/docker.sock is present and writable
+
+╔══════════╣ Interesting Files
+    Found /home/www-data/.ssh/id_rsa
+    Possible private SSH key found: -----BEGIN OPENSSH PRIVATE KEY-----
+
+╔══════════╣ Executable files potentially added by user (limit 70)
+[+] [CVE-2021-4034] PwnKit
+    Exposure: probable
+    Tags: [ ubuntu=10|11|12... ],debian=7|8|9|10,fedora,manjaro

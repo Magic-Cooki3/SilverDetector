@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,7 +28,8 @@ import silverdetector.core.Table;
  *   <li><b>token privileges</b> - SeImpersonate and friends, from {@code data/windows_privileges.tsv}</li>
  *   <li><b>privileged groups</b> - Administrators, Backup Operators, DnsAdmins, from {@code windows_groups.tsv}</li>
  *   <li><b>signatures</b> - AlwaysInstallElevated, unquoted paths, WDigest, GPP passwords and
- *       ~40 more, from {@code data/windows_signatures.tsv}, each a regex + an explanation</li>
+ *       ~40 more, from {@code data/windows_signatures.tsv}, matched by the shared
+ *       {@link Signatures} engine</li>
  * </ul>
  * Every finding says what it is and where to look / how to abuse it, so a pentester who does not
  * recognise a line in a scan can paste it here and get pointed at the technique.
@@ -37,17 +39,11 @@ import silverdetector.core.Table;
  */
 public final class WindowsPrivescDetector implements Detector {
 
-    private static final Pattern ANSI = Pattern.compile("\u001b\\[[0-9;?]*[ -/]*[@-~]");
     private static final Pattern PRIVILEGE = Pattern.compile("\\bSe[A-Z][A-Za-z]+Privilege\\b");
     // DOMAIN\Group Name, where the name runs up to the next column (2+ spaces / tab / comma).
     private static final Pattern GROUP_LINE = Pattern.compile(
             "(?i)(BUILTIN|NT AUTHORITY|NT SERVICE|[A-Za-z0-9.-]+)\\\\([A-Za-z0-9][A-Za-z0-9 _-]*?)"
                     + "(?:\\s{2,}|\\t|,|$)");
-
-    // Records a compiled signature so the table is parsed once per run, not once per line.
-    private record Signature(String id, Pattern pattern, Severity severity, String category,
-                             String title, String meaning, String next) {
-    }
 
     @Override
     public String id() {
@@ -74,14 +70,14 @@ public final class WindowsPrivescDetector implements Detector {
         if (looksLikeLinpeas(doc)) {
             return Detection.NONE;   // a Linux scan - let the Linux detectors handle it
         }
-        List<Signature> signatures = signatures();
+        List<Signatures.Sig> signatures = Signatures.load("windows_signatures");
         int sigHits = 0;
         int privHits = 0;
         boolean winpeas = false;
         boolean windowsish = false;
 
         for (Document.Line line : doc.contentLines()) {
-            String text = clean(line.text());
+            String text = Signatures.clean(line.text());
             String lower = text.toLowerCase();
             if (lower.contains("winpeas") || lower.contains("peass-ng")
                     || lower.contains("windows local privilege")) {
@@ -94,12 +90,9 @@ public final class WindowsPrivescDetector implements Detector {
             if (windowsMarker(text, lower)) {
                 windowsish = true;
             }
-            for (Signature sig : signatures) {
-                if (sig.pattern().matcher(text).find()) {
-                    sigHits++;
-                    windowsish = true;
-                    break;   // one hit per line is enough to score
-                }
+            if (Signatures.anyMatch(signatures, text)) {
+                sigHits++;
+                windowsish = true;
             }
         }
 
@@ -130,7 +123,7 @@ public final class WindowsPrivescDetector implements Detector {
 
     private static boolean looksLikeLinpeas(Document doc) {
         for (Document.Line line : doc.contentLines()) {
-            String lower = clean(line.text()).toLowerCase();
+            String lower = Signatures.clean(line.text()).toLowerCase();
             if (lower.contains("linpeas") || lower.contains("linux privilege escalation")
                     || lower.contains("linux local privilege")) {
                 return true;
@@ -143,34 +136,29 @@ public final class WindowsPrivescDetector implements Detector {
     public List<Finding> analyze(Document doc) {
         Table privileges = Kb.table("windows_privileges");
         Table groups = Kb.table("windows_groups");
-        List<Signature> signatures = signatures();
 
         List<Finding> findings = new ArrayList<>();
-        Set<String> seenSig = new LinkedHashSet<>();
         Set<String> seenPriv = new LinkedHashSet<>();
         Set<String> seenGroup = new LinkedHashSet<>();
         boolean winpeas = false;
 
         for (Document.Line line : doc.contentLines()) {
-            String text = clean(line.text());
+            String text = Signatures.clean(line.text());
             String lower = text.toLowerCase();
             if (lower.contains("winpeas") || lower.contains("peass-ng")) {
                 winpeas = true;
             }
 
-            // 1. token privileges
+            // token privileges
             Matcher priv = PRIVILEGE.matcher(text);
             while (priv.find()) {
                 String name = priv.group();
                 if (seenPriv.add(name.toLowerCase())) {
-                    Finding f = assessPrivilege(name, text, line.number(), privileges);
-                    if (f != null) {
-                        findings.add(f);
-                    }
+                    findings.add(assessPrivilege(name, text, line.number(), privileges));
                 }
             }
 
-            // 2. privileged groups (only on lines that look like a groups/ACL listing)
+            // privileged groups (only on lines that look like a groups/ACL listing)
             if (isGroupContext(lower)) {
                 Matcher gm = GROUP_LINE.matcher(text);
                 while (gm.find()) {
@@ -178,14 +166,10 @@ public final class WindowsPrivescDetector implements Detector {
                             .ifPresent(findings::add);
                 }
             }
-
-            // 3. signatures
-            for (Signature sig : signatures) {
-                if (sig.pattern().matcher(text).find() && seenSig.add(sig.id())) {
-                    findings.add(assessSignature(sig, text, line.number()));
-                }
-            }
         }
+
+        // signatures - the shared engine, deduped by id
+        findings.addAll(Signatures.scan(Signatures.load("windows_signatures"), doc));
 
         if (findings.isEmpty()) {
             findings.add(Finding.of(Severity.INFO, "windows", "Windows output, nothing flagged",
@@ -223,8 +207,6 @@ public final class WindowsPrivescDetector implements Detector {
             detail = "A token privilege not in windows_privileges.tsv. Look it up - some are "
                     + "escalation primitives. Add a row so it is explained next time.";
         }
-        // A disabled high-value privilege is still worth surfacing: a process can often enable
-        // one it holds. Keep the severity, but say so.
         Finding finding = Finding.of(severity, name,
                 "token privilege" + (severity.atLeast(Severity.WARN) ? " - escalation primitive" : ""),
                 detail, evidence, line);
@@ -240,32 +222,22 @@ public final class WindowsPrivescDetector implements Detector {
         return finding;
     }
 
-    private java.util.Optional<Finding> assessGroup(String group, String evidence, int line,
-                                                    Table groups, Set<String> seen) {
+    private Optional<Finding> assessGroup(String group, String evidence, int line,
+                                          Table groups, Set<String> seen) {
         Row row = groups.first(group);
         if (row == null) {
-            return java.util.Optional.empty();   // unknown group name - not necessarily a group at all
+            return Optional.empty();   // unknown group name - not necessarily a group at all
         }
         Severity severity = Severity.parse(row.get("severity"), Severity.OK);
         if (severity == Severity.OK || !seen.add(group.toLowerCase())) {
-            return java.util.Optional.empty();   // benign, or already reported
+            return Optional.empty();   // benign, or already reported
         }
         Finding finding = Finding.of(severity, "group: " + group, "privileged group membership",
                 row.get("description"), evidence, line);
         if (row.has("technique") && !row.get("technique").equals("-")) {
             finding = finding.note("technique: " + row.get("technique"));
         }
-        return java.util.Optional.of(finding);
-    }
-
-    private Finding assessSignature(Signature sig, String evidence, int line) {
-        Finding finding = Finding.of(sig.severity(), sig.title(),
-                sig.category().isEmpty() ? sig.title() : "[" + sig.category() + "] " + sig.title(),
-                sig.meaning(), evidence, line);
-        if (!sig.next().isEmpty()) {
-            finding = finding.note("next: " + sig.next());
-        }
-        return finding;
+        return Optional.of(finding);
     }
 
     private static boolean isGroupContext(String lower) {
@@ -273,32 +245,5 @@ public final class WindowsPrivescDetector implements Detector {
                 || lower.contains("well-known") || lower.contains("s-1-")
                 || lower.contains("mandatory") || lower.contains("builtin")
                 || lower.contains("enabled by default") || lower.contains("nt authority"));
-    }
-
-    private List<Signature> signatures() {
-        List<Signature> out = new ArrayList<>();
-        for (Row row : Kb.table("windows_signatures").rows()) {
-            String pattern = row.get("pattern");
-            if (pattern.isEmpty()) {
-                continue;
-            }
-            try {
-                Pattern compiled = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
-                out.add(new Signature(row.get("id"), compiled,
-                        Severity.parse(row.get("severity"), Severity.NOTICE),
-                        row.get("category"), row.get("title", row.get("id")),
-                        row.get("meaning"), row.get("next")));
-            } catch (RuntimeException e) {
-                // A bad regex in the table must not take the whole detector down.
-                out.add(new Signature(row.get("id"), Pattern.compile("(?!)"),
-                        Severity.NOTICE, "", row.get("id"),
-                        "signature '" + row.get("id") + "' has an invalid regex: " + e.getMessage(), ""));
-            }
-        }
-        return out;
-    }
-
-    private static String clean(String text) {
-        return ANSI.matcher(text).replaceAll("").strip();
     }
 }

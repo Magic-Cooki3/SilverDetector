@@ -218,12 +218,35 @@ check "Administrators membership is critical" \
     sh -c 'printf "GROUP INFORMATION\n-----------------\nGroup Name  Type\nBUILTIN\\\\Administrators  Alias  Mandatory group, Enabled\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "privileged group"'
 
 echo
-echo "peas acceptance"
+echo "linux privesc (linPEAS / checklist)"
+check "linpeas picks the linprivesc detector"    says "\[linprivesc\]" samples/linpeas.txt
+check "writable /etc/passwd is critical"         says "Writable /etc/passwd" samples/linpeas.txt
+check "no_root_squash NFS is critical"           says "no_root_squash" samples/linpeas.txt
+check "the docker socket is critical"            says "Docker socket reachable" samples/linpeas.txt
+check "a PwnKit CVE tag is recognised"           says "PwnKit" samples/linpeas.txt
+check "an SSH private key is flagged"            says "SSH private key" samples/linpeas.txt
+check "linprivesc does not fire on the SUID pkexec sample" silent_about "\[linprivesc\]" samples/find-perm-4000.txt
+check "linprivesc does not run on a winPEAS dump" silent_about "\[linprivesc\]" samples/winpeas.txt
+
+echo
+echo "peas acceptance (both engines + structured detectors)"
 check "linpeas output is accepted"               says "read with:" samples/linpeas.txt
 check "linpeas kernel section -> Dirty COW"      says "CVE-2016-5195" samples/linpeas.txt
 check "linpeas sudo section -> GTFOBins find"    says "find via sudo" samples/linpeas.txt
 check "linpeas SUID section -> planted shell"    says "CRIT   /tmp/.hidden/bash" samples/linpeas.txt
 check "linpeas does not run the windows engine"  silent_about "\[winprivesc\]" samples/linpeas.txt
+
+echo
+echo "nmap NSE script results"
+check "a scripted scan picks the nmapscripts detector" says "\[nmapscripts\]" samples/nmap-scripts.txt
+check "ssl-heartbleed is explained"              says "Heartbleed" samples/nmap-scripts.txt
+check "ms17-010 via NSE is critical"             says "EternalBlue" samples/nmap-scripts.txt
+check "an unknown vuln script is still flagged"  says "nse: smb-vuln-cve-2077-9999" samples/nmap-scripts.txt
+check "http-methods is surfaced"                 says "HTTP methods allowed" samples/nmap-scripts.txt
+check "smb-os-discovery is surfaced"             says "SMB OS discovery" samples/nmap-scripts.txt
+check "a NOT VULNERABLE script is not flagged" \
+    sh -c 'printf "| smb-vuln-ms17-010:\n|_    State: NOT VULNERABLE\n| http-title: Home\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -qv "EternalBlue"'
+check "a plain port scan does not run nmapscripts" silent_about "\[nmapscripts\]" samples/nmap.txt
 
 echo
 echo "input handling"
