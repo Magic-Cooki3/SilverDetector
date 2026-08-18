@@ -184,6 +184,11 @@ The shipped detectors each show a technique you will probably want:
   script id across `|` lines and fires on a later `State: VULNERABLE`, with a keyed table for the
   known scripts and a generic catch for the rest. Copy it when the meaning of a line depends on an
   earlier line, and you want unknown-but-clearly-bad results surfaced too.
+- **`SqlmapDetector` + `sqlmap_steps.tsv` / `sqlmap_dbms.tsv`** — a *walkthrough* detector: instead
+  of severity-sorted findings it returns an ordered sequence of steps (the report prints findings
+  in the order you return them — no re-sort), each reconstructing a command from what it parsed out
+  of the paste. Copy it when the answer is "here is what to do next, in order", not "here is what is
+  wrong". The two tables split the generic ladder from the per-DBMS specifics.
 
 Copy whichever is closest to your input's shape. Note how many of these **share a table**: add a
 GTFOBins binary, a writable directory, or a CVE range once and every detector that reads that

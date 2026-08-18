@@ -59,6 +59,7 @@ box — the same list a learner meets working through a CTF or a HackTheBox mach
 | `winprivesc` | **winPEAS** output, `whoami /priv`, `whoami /groups`, `sc qc`, `reg query`, any Windows enum dump | The whole HackTricks Windows-privesc checklist as ~40 signatures: token privileges (SeImpersonate → Potato), privileged groups, AlwaysInstallElevated, unquoted/modifiable services, WDigest, GPP/autologon/SAM/unattend credentials, DLL hijacking, and more — each with what it is and the next step |
 | `linprivesc` | **linPEAS** output, or a Linux enum dump | The Linux-privesc checklist items the structured detectors don't already cover: writable `/etc/passwd`/`sudoers`/systemd units, `no_root_squash`, the docker socket, `ld.so.preload`, SSH keys, secrets, and the CVE tags linPEAS prints (PwnKit, Dirty Pipe, …) |
 | `nmapscripts` | **nmap** `-sC`/`-sV`/`-A`/`--script` output (the `\| script:` blocks) | Every NSE script result explained — Heartbleed, Shellshock, MS17-010, ftp-anon, http-methods, smb-os-discovery, and any `*-vuln-*` script that says VULNERABLE even if it's not in the table |
+| `sqlmap` | the **sqlmap** command you ran + its output (`Parameter:`/`Type:`/`back-end DBMS:`) | A step-by-step walkthrough from "confirmed injection" to creds/RCE — every sqlmap command rebuilt with *your* URL/cookie/param, paired with the by-hand SQL for the detected DBMS so you learn manual SQLi |
 
 Paste more than one at a time if you like — each format is detected and reported separately, so
 a whole enumeration dump goes in at once and comes back split by tool.
@@ -85,6 +86,20 @@ it is and where to look.
 silverfinder winpeas_out.txt        # or:  .\winPEASany.exe | silverfinder   (paste it over)
 silverfinder -q linpeas_out.txt     # anomalies only
 silverfinder nmap_-A_target.txt     # NSE script results explained
+```
+
+### sqlmap — a guided walkthrough, not just a verdict
+
+Paste the sqlmap command you ran **and** its output and the `sqlmap` detector reads what it
+already found (DBMS, vulnerable parameter, which techniques worked, the UNION column layout) and
+lays out the whole attack in order: fingerprint & privileges → databases → tables → columns →
+dump → DBMS hashes → file read → command execution. Every step is a real sqlmap command rebuilt
+with **your** URL, cookie and parameter, next to the **by-hand SQL** for that DBMS — so you're
+learning manual SQLi, not just driving the tool (it's fine to use sqlmap once on the OSCP, but
+you shouldn't lean on it). The steps print in order regardless of severity.
+
+```sh
+silverfinder sqlmap_out.txt         # paste the command line + the Parameter/Type/DBMS block
 ```
 
 ### Automatic CVE matching
@@ -160,6 +175,8 @@ data/windows_privileges.tsv  Windows token privileges -> exploitation
 data/windows_groups.tsv      privileged Windows groups
 data/linux_signatures.tsv    regex -> Linux privesc finding (the linPEAS engine)
 data/nmap_scripts.tsv        NSE script id -> what it found and where to look
+data/sqlmap_steps.tsv        the sqlmap attack ladder, in order
+data/sqlmap_dbms.tsv         per-DBMS manual-SQLi building blocks (the by-hand equivalents)
 ```
 
 `windows_signatures.tsv` is a plain regex-per-row table, so covering one more Windows check —
@@ -245,5 +262,5 @@ floor with `SILVERDETECTOR_RELEASE=21 ./build.sh` if you ever need to. (`--updat
 `curl`/`wget` and `unzip`, falling back to the JDK's `jar` — all standard on a pentest box.)
 
 ```sh
-./test.sh             # 156 checks over the samples, detectors, updater and override behaviour
+./test.sh             # 169 checks over the samples, detectors, updater and override behaviour
 ```

@@ -1,0 +1,24 @@
+# The sqlmap attack ladder, in order. Once sqlmap has a confirmed injection this is the standard
+# sequence from "I found SQLi" to creds/RCE. The sqlmap detector walks these in order, filling in
+# YOUR target (url / cookie / parameter) so each command is copy-paste ready, and pairs each with
+# the manual (by-hand) equivalent from sqlmap_dbms.tsv - so you learn the SQL, not just the tool.
+#
+# needs:  always        show it every time
+#         union         only when a UNION injection was found
+#         stacked       only when stacked queries work
+#         dba           only when the current user is (or might be) a DB admin
+#         stacked_or_dba either of the above - the file-read / RCE preconditions
+#
+# flags are appended to your base sqlmap command. <DB> <TABLE> <COL1> <COL2> are placeholders you
+# fill from the previous step's output.
+#
+# order	needs	flags	title	what	look_for	manual_key
+order	needs	flags	title	what	look_for	manual_key
+1	always	--banner --current-user --current-db --hostname --is-dba	Fingerprint the DBMS and check your privileges	Pull the version banner, the account you are running as, the current database, the hostname, and - the important one - whether that account is a database admin.	If it says 'current user is DBA: True' you can almost certainly read files off disk and get command execution (steps 7-8). Note the current DB name for the next steps.	identity
+2	always	--dbs	List the databases	Enumerate every database / schema this account can see.	Ignore the built-ins (information_schema, pg_catalog, template0/1, sys, mysql). Pick the application's database and use it as <DB>.	list_dbs
+3	always	-D <DB> --tables	List the tables in a database	Show the tables inside the database you picked.	Look for users / accounts / admin / login / creds tables. Choose one as <TABLE>.	list_tables
+4	always	-D <DB> -T <TABLE> --columns	List a table's columns	See the column names so you know what is worth pulling.	Note the username / password / hash columns and use them as <COL1> and <COL2>.	list_columns
+5	always	-D <DB> -T <TABLE> --dump	Dump the data	Pull the rows out of the table - this is usually where the credentials live.	sqlmap offers to crack any hashes it recognises; otherwise feed them to hashcat / john. Then REUSE those creds against SSH, the login form, and other services on the box.	dump
+6	dba	--passwords	Dump the DBMS's own account hashes	Read the database engine's own logins (its user table), separate from the application's data.	Crack them - a database admin password is very often reused for an OS account, so try it with su / ssh.	passwords
+7	stacked_or_dba	--file-read=/etc/passwd	Read files off the server	Read an arbitrary file from disk as the database service account.	Read /etc/passwd (enumerate users and home dirs), then app config files (more DB creds / secrets) and SSH private keys under those homes.	fileread
+8	stacked_or_dba	--os-shell	Get command execution	Have sqlmap set up an interactive OS shell straight through the injection.	Run 'id' first. On PostgreSQL with stacked queries this is COPY ... FROM PROGRAM (CVE-2019-9193) and drops you in as the postgres user - your foothold. Also try --os-cmd="id" for one-shot, or --sql-shell for a raw SQL prompt.	rce

@@ -151,6 +151,7 @@ cat > "$paste_file" <<'HEADER'
 #   nmap -sC / -A / --script         NSE script results (heartbleed, ms17-010, ...)
 #   winPEAS output / whoami /priv    Windows privesc: tokens, services, creds (checklist)
 #   linPEAS output                   Linux privesc: writable files, NFS, docker, keys, CVEs
+#   sqlmap command + its output      a step-by-step SQLi walkthrough (+ manual SQL)
 #
 # Paste more than one of them at a time if you like - each is reported separately.
 

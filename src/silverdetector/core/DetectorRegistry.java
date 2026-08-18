@@ -17,6 +17,7 @@ import silverdetector.detect.PortsDetector;
 import silverdetector.detect.SetuidDetector;
 import silverdetector.detect.ShadowDetector;
 import silverdetector.detect.SmbDetector;
+import silverdetector.detect.SqlmapDetector;
 import silverdetector.detect.SudoDetector;
 import silverdetector.detect.WindowsFoldersDetector;
 import silverdetector.detect.WindowsPrivescDetector;
@@ -47,6 +48,7 @@ public final class DetectorRegistry {
         detectors.add(new PortsDetector());         // ss / netstat / nmap / lsof
         detectors.add(new CapabilitiesDetector());  // getcap -r /
         detectors.add(new HttpDetector());          // curl -i / raw HTTP  (auto CVE match)
+        detectors.add(new SqlmapDetector());        // sqlmap output -> guided SQLi walkthrough
         detectors.add(new CronDetector());          // crontab -l, /etc/crontab
         detectors.add(new PasswdDetector());        // cat /etc/passwd
         detectors.add(new ShadowDetector());        // cat /etc/shadow

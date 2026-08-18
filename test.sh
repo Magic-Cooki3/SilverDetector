@@ -200,6 +200,25 @@ check "a hardened response is clean" \
     sh -c 'printf "HTTP/1.1 200 OK\nStrict-Transport-Security: max-age=63072000\nContent-Security-Policy: default-src '"'"'self'"'"'\nX-Frame-Options: DENY\nX-Content-Type-Options: nosniff\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "security headers present"'
 
 echo
+echo "sqlmap walkthrough"
+check "sqlmap output picks the sqlmap detector" says "read with: sqlmap" samples/sqlmap.txt
+check "the injection is confirmed"              says "SQL injection CONFIRMED" samples/sqlmap.txt
+check "the DBMS is named"                        says "against PostgreSQL" samples/sqlmap.txt
+check "the UNION column count is parsed"         says "5 columns" samples/sqlmap.txt
+check "the visible UNION column is identified"   says "column #2" samples/sqlmap.txt
+check "the command is rebuilt with the cookie"   says "PHPSESSID=dg069s7ndaegcrhdp72funt677" samples/sqlmap.txt
+check "the manual UNION payload is shown"        says "UNION SELECT NULL,version()" samples/sqlmap.txt
+check "step 8 names the COPY FROM PROGRAM RCE"   says "COPY sd FROM PROGRAM" samples/sqlmap.txt
+check "the CVE for postgres RCE is cited"        says "CVE-2019-9193" samples/sqlmap.txt
+check "the manual lesson explains column discovery" says "How the manual injection works" samples/sqlmap.txt
+check "the steps come out in order" \
+    sh -c 'out=$(SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar samples/sqlmap.txt 2>/dev/null); s1=$(printf "%s" "$out" | grep -n "Step 1:" | head -1 | cut -d: -f1); s8=$(printf "%s" "$out" | grep -n "Step 8:" | head -1 | cut -d: -f1); [ -n "$s1" ] && [ -n "$s8" ] && [ "$s1" -lt "$s8" ]'
+check "a MySQL sqlmap paste gets MySQL manual SQL" \
+    sh -c 'printf "sqlmap -u \"http://t/p.php?id=1\"\nParameter: id (GET)\n    Type: UNION query\n    Title: Generic UNION query (NULL) - 3 columns\n    Payload: id=-1 UNION ALL SELECT NULL,CONCAT(0x71),NULL-- -\nback-end DBMS: MySQL\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "group_concat"'
+check "a DBA-confirmed paste offers --passwords" \
+    sh -c 'printf "sqlmap -u \"http://t/p.php?id=1\"\nParameter: id (GET)\n    Type: UNION query\n    Title: Generic UNION query (NULL) - 3 columns\n    Payload: id=-1 UNION ALL SELECT NULL,CONCAT(1),NULL-- -\ncurrent user is DBA: True\nback-end DBMS: MySQL\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q -- "--passwords"'
+
+echo
 echo "windows privesc (winPEAS / checklist)"
 check "winpeas output picks the winprivesc detector" says "read with: winprivesc" samples/winpeas.txt
 check "whoami /priv is recognised"               says "read with: winprivesc" samples/whoami-priv.txt
