@@ -6,7 +6,7 @@ for anything that matters, the next command to run.
 
 It is built for the enumeration-and-privesc grind of a CTF box or an OSCP lab. It works out which
 command you pasted on its own, names every entry ("tcp/22 — ssh, OpenSSH remote login"), flags the
-ones that don't belong, and — this is the point — explains *why* each one escalates and *what to
+ones that don't belong, and explains *why* each one escalates and *what to
 do next*, so you pick up the tradecraft while you triage. Nothing that is normal goes unexplained:
 if a port or a SUID binary is fine, it says so and says what the thing does.
 
@@ -15,6 +15,7 @@ service and version enumeration, web / SQL injection, password cracking, and the
 Directory** attack chain — enumeration → Kerberoasting / AS-REP roasting → DCSync → lateral
 movement. It is a red-team **learning aid, not an exploit**: it recognises and explains, it does
 not attack anything, and it needs no network — so it is safe to run against your own lab notes.
+It also does not use AI and can be installed completely offline assuming you have JDK 17+ installed.
 
 Everything it knows lives in tab-separated files under `data/`, so most of what you will ever
 want to change is a row in a `.tsv`, not Java. When you want a whole new kind of input, that is
