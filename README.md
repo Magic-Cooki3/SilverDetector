@@ -322,5 +322,5 @@ floor with `SILVERDETECTOR_RELEASE=21 ./build.sh` if you ever need to. (`--updat
 `curl`/`wget` and `unzip`, falling back to the JDK's `jar` — all standard on a pentest box.)
 
 ```sh
-./test.sh             # 212 checks over the samples, detectors, updater and override behaviour
+./test.sh             # 223 checks over the samples, detectors, updater and override behaviour
 ```

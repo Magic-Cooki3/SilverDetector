@@ -319,6 +319,30 @@ check "a saved SYSTEM hive is critical"           says "registry hive saved" sam
 check "mimikatz sekurlsa is an LSASS dump"        says "LSASS memory dump" samples/ad-lateral.txt
 check "mimikatz lsadump::sam is flagged"          says "mimikatz credential" samples/ad-lateral.txt
 check "mimikatz pass-the-hash is recognised"      says "Pass-the-hash" samples/ad-lateral.txt
+
+echo
+echo "active directory (OSCP core methods: spray / roast / DCSync / lateral)"
+# (1) password spraying
+check "the spray sample picks the ad detector"    says "\[ad\]" samples/password-spray.txt
+check "password spraying activity is flagged"     says "Password spraying" samples/password-spray.txt
+check "a spray hit is valid domain creds"         says "Valid domain credentials" samples/password-spray.txt
+check "spraying warns about lockout"              says "Account lockout hit" samples/password-spray.txt
+check "Invoke-DomainPasswordSpray is recognised" \
+    sh -c 'printf "Invoke-DomainPasswordSpray -Password Spring2024!\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "Password spraying"'
+# (2) kerberoasting / AS-REP roasting (PowerView forms the OSCP labs use)
+check "Get-DomainSPNTicket is kerberoasting" \
+    sh -c 'printf "Get-DomainSPNTicket -SPN MSSQLSvc/sql01 -OutputFormat Hashcat\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "Kerberoasting"'
+check "Get-DomainUser -PreauthNotRequired is AS-REP" \
+    sh -c 'printf "Get-DomainUser -PreauthNotRequired\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "AS-REP roasting"'
+# (3) domain controller synchronization (DCSync)
+check "mimikatz lsadump::dcsync is DCSync" \
+    sh -c 'printf "mimikatz # lsadump::dcsync /domain:corp.local /user:krbtgt\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "DCSync rights"'
+check "secretsdump -just-dc is a DCSync dump"     says "Domain credential dump" samples/secretsdump.txt
+# (4) lateral movement, client -> AD server
+check "psexec with -hashes :NT is pass-the-hash" \
+    sh -c 'printf "impacket-psexec corp.local/administrator@10.10.10.10 -hashes :e19ccf75ee54e06b06a5907af13cef42\n[*] Requesting shares on 10.10.10.10\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "Pass-the-hash"'
+check "getTGT overpass-the-hash is recognised" \
+    sh -c 'printf "getTGT.py corp.local/administrator -hashes :e19ccf75ee54e06b06a5907af13cef42\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "Overpass-the-hash"'
 check "a bare krb5tgs paste is understood" \
     sh -c 'printf "\$krb5tgs\$23\$*svc\$CORP\$MSSQLSvc/h*\$abc\$def123456789abcdef\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "hashcat -m 13100"'
 

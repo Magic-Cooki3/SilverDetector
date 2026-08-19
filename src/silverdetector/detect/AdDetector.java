@@ -1,7 +1,9 @@
 package silverdetector.detect;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import silverdetector.core.Detection;
 import silverdetector.core.Detector;
@@ -39,7 +41,7 @@ public final class AdDetector implements Detector {
         "powerview", "sharpview", "ldapsearch", "windapsearch", "ldapdomaindump",
         "enum4linux", "rpcclient", "certipy", "certify", "kerbrute", "responder",
         "ntlmrelayx", "getuserspns", "getnpusers", "secretsdump", "rubeus", "evil-winrm",
-        "mimikatz", "petitpotam", "zerologon", "nopac",
+        "mimikatz", "petitpotam", "zerologon", "nopac", "domainpasswordspray", "get-domain",
     };
 
     @Override
@@ -66,7 +68,7 @@ public final class AdDetector implements Detector {
     @Override
     public Detection sniff(Document doc) {
         List<Signatures.Sig> signatures = Signatures.load("ad_signatures");
-        int sigHits = 0;
+        Set<String> hitIds = new HashSet<>();
         boolean tool = false;
 
         for (Document.Line line : doc.contentLines()) {
@@ -74,12 +76,18 @@ public final class AdDetector implements Detector {
             if (!tool && namesAdTool(text.toLowerCase())) {
                 tool = true;
             }
-            if (Signatures.anyMatch(signatures, text)) {
-                sigHits++;
+            // Count DISTINCT techniques, not lines: one compact paste (a single command that is
+            // both a kerberoast and an SPN read) is still a confident AD match, while a lone
+            // generic tell repeated over many lines is not.
+            for (Signatures.Sig sig : signatures) {
+                if (sig.pattern().matcher(text).find()) {
+                    hitIds.add(sig.id());
+                }
             }
         }
+        int sigHits = hitIds.size();
 
-        // Need a tool banner, or two independent signals: one lone generic match (a stray
+        // Need a tool banner, or two independent techniques: one lone generic match (a stray
         // "GenericAll" in prose) is not an AD scan, and claiming everything makes auto-detection
         // useless.
         if (!tool && sigHits < 2) {
