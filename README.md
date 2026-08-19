@@ -128,6 +128,13 @@ glance:
 - **Dumping / lateral / trusts** — NTDS/secretsdump, LSASS dumps, DCC2, psexec/wmiexec, WinRM,
   pass-the-hash, domain/forest trusts and SID history.
 
+It tracks the current **OSCP / PEN-200 AD workflow** end to end, including the manual,
+living-off-the-land tradecraft the exam leans on: native `net` / `setspn` / `Get-AD*` / `nltest`
+enumeration, session and local-admin hunting (`Find-LocalAdminAccess`, `Get-NetSession`), the
+Shadow-Copy / `ntdsutil` IFM / `esentutl` / `reg save` routes to `NTDS.dit` and the SAM hive,
+`runas /netonly`, and the full **mimikatz** command set (`sekurlsa::`, `lsadump::`, PtH, DCSync,
+Golden/Silver tickets).
+
 The hashes those tools spit out are read by the sibling `adhash` detector, which is to AD what
 `shadow` is to Linux: it turns each hash into the exact cracking command, and tells you when
 *not* to crack. Paste a whole run — NetExec across a subnet, a BloodHound path, a Certipy find,
@@ -315,5 +322,5 @@ floor with `SILVERDETECTOR_RELEASE=21 ./build.sh` if you ever need to. (`--updat
 `curl`/`wget` and `unzip`, falling back to the JDK's `jar` — all standard on a pentest box.)
 
 ```sh
-./test.sh             # 200 checks over the samples, detectors, updater and override behaviour
+./test.sh             # 212 checks over the samples, detectors, updater and override behaviour
 ```
