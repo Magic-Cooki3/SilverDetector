@@ -1,10 +1,20 @@
 # SilverDetector
 
-Paste command output into an empty file. Get told what it is, what is normal, and what is not.
+**A learning-focused triage aid for CTFs, Hack The Box, and OSCP / PEN-200 (PWK).**
+Paste command output into an empty file. Get told what it is, what is normal, what is not — and,
+for anything that matters, the next command to run.
 
-It works out which command you pasted on its own, names every entry ("tcp/22 — ssh, OpenSSH
-remote login"), and flags the ones that do not belong. Nothing that is normal goes unexplained:
+It is built for the enumeration-and-privesc grind of a CTF box or an OSCP lab. It works out which
+command you pasted on its own, names every entry ("tcp/22 — ssh, OpenSSH remote login"), flags the
+ones that don't belong, and — this is the point — explains *why* each one escalates and *what to
+do next*, so you pick up the tradecraft while you triage. Nothing that is normal goes unexplained:
 if a port or a SUID binary is fine, it says so and says what the thing does.
+
+It tracks the whole OSCP surface a beginner meets: **Linux and Windows privilege escalation**,
+service and version enumeration, web / SQL injection, password cracking, and the full **Active
+Directory** attack chain — enumeration → Kerberoasting / AS-REP roasting → DCSync → lateral
+movement. It is a red-team **learning aid, not an exploit**: it recognises and explains, it does
+not attack anything, and it needs no network — so it is safe to run against your own lab notes.
 
 Everything it knows lives in tab-separated files under `data/`, so most of what you will ever
 want to change is a row in a `.tsv`, not Java. When you want a whole new kind of input, that is
@@ -39,8 +49,9 @@ mkdir -p ~/.local/bin && ln -sf "$PWD/bin/silverdetector" ~/.local/bin/silverdet
 
 ## What it reads today
 
-Aimed at the things a purple teamer triages during privilege-escalation enumeration on a Linux
-box — the same list a learner meets working through a CTF or a HackTheBox machine.
+Exactly what you triage on a CTF, Hack The Box, or OSCP lab box — Linux **and** Windows
+privilege-escalation enumeration, service/version recon, web and SQLi, and a full Active Directory
+assessment. Each reader below is one `id` (force it with `-d <id>`, list them all with `--list`):
 
 | id       | input                                                              | what it tells you |
 |----------|--------------------------------------------------------------------|-------------------|
@@ -170,10 +181,12 @@ range by editing one row (`data/service_cves.tsv`, `data/kernel_cves.tsv`).
 ### Built to learn from
 
 Every anomaly says *why* it escalates and *what to do next*, not just that it is wrong — a
-GTFOBins pointer for a sudo/SUID binary, the `hashcat`/`john` mode for a hash, the CVE id for a
-vulnerable sudo. Read the report top to bottom and you pick up the tradecraft while you triage.
-It is a red-team learning aid, not an exploit: it recognises and explains, it does not attack
-anything.
+GTFOBins pointer for a sudo/SUID binary, the `hashcat -m` / `john` mode for a hash, the CVE id for
+a vulnerable sudo, the exact Impacket / Rubeus / Certipy command for an AD finding. Read the report
+top to bottom and you pick up the tradecraft while you triage — which is the whole point for
+OSCP / PWK study, where the goal is to *understand* the technique, not lean on a scanner. It is a
+red-team learning aid, not an exploit and not an autopwn: it recognises and explains, it does not
+attack anything.
 
 ## Reading the report
 
