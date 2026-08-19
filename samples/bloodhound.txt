@@ -1,0 +1,11 @@
+# BloodHound - "Shortest paths to Domain Admins" (corp.local), pasted from the path panel
+JDOE@CORP.LOCAL -[MemberOf]-> HELPDESK@CORP.LOCAL
+HELPDESK@CORP.LOCAL -[GenericAll]-> SVC-BACKUP@CORP.LOCAL
+SVC-BACKUP@CORP.LOCAL -[ForceChangePassword]-> BACKUPADMIN@CORP.LOCAL
+BACKUPADMIN@CORP.LOCAL -[MemberOf]-> BACKUP OPERATORS@CORP.LOCAL
+WEB01$@CORP.LOCAL -[AllowedToAct]-> FILE01$@CORP.LOCAL     (Resource-Based Constrained Delegation)
+TIER1ADMIN@CORP.LOCAL -[WriteDacl]-> CORP.LOCAL
+TIER1ADMIN@CORP.LOCAL -[DCSync]-> CORP.LOCAL
+JDOE@CORP.LOCAL -[AddKeyCredentialLink]-> SVC-WEB@CORP.LOCAL     (Shadow Credentials)
+JDOE@CORP.LOCAL -[CanPSRemote]-> WEB01.CORP.LOCAL
+JDOE@CORP.LOCAL -[GenericWrite]-> GPADMIN@CORP.LOCAL

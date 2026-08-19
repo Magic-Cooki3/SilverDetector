@@ -1,0 +1,24 @@
+$ ldapsearch -x -H ldap://10.10.10.10 -D 'jdoe@corp.local' -w 'Summer2024!' -b "DC=corp,DC=local" "(objectClass=user)"
+# extended LDIF
+defaultNamingContext: DC=corp,DC=local
+ms-DS-MachineAccountQuota: 10
+
+dn: CN=John Doe,CN=Users,DC=corp,DC=local
+sAMAccountName: jdoe
+userAccountControl: 512
+
+dn: CN=svc-sql,CN=Users,DC=corp,DC=local
+sAMAccountName: svc-sql
+servicePrincipalName: MSSQLSvc/sql01.corp.local:1433
+userAccountControl: 66048
+adminCount: 1
+
+dn: CN=svc-web,CN=Users,DC=corp,DC=local
+sAMAccountName: svc-web
+description: service account - pass Winter2023!
+msDS-AllowedToDelegateTo: HOST/file01.corp.local
+
+dn: CN=WEB01,CN=Computers,DC=corp,DC=local
+sAMAccountName: WEB01$
+userAccountControl: 528384
+msDS-AllowedToActOnBehalfOfOtherIdentity: <binary>

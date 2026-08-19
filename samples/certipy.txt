@@ -1,0 +1,24 @@
+$ certipy find -u jdoe@corp.local -p 'Summer2024!' -dc-ip 10.10.10.10 -vulnerable -stdout
+Certipy v4.8.2 - by Oliver Lyak (ly4k)
+
+[*] Finding certificate templates
+[*] Found 34 certificate templates
+[*] Finding certificate authorities
+Certificate Authorities
+  0
+    CA Name                             : corp-DC01-CA
+    DNS Name                            : DC01.corp.local
+    Web Enrollment                      : Enabled
+Certificate Templates
+  0
+    Template Name                       : CorpWebServer
+    Enabled                             : True
+    Client Authentication               : True
+    Enrollment Rights                   : CORP.LOCAL\Domain Users
+    Enrollee Supplies Subject           : True
+    [!] Vulnerabilities
+      ESC1                              : Enrollee supplies subject and template allows client authentication
+  1
+    Template Name                       : CorpAgent
+    [!] Vulnerabilities
+      ESC8                              : Web Enrollment is enabled and the CA allows NTLM authentication

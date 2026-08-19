@@ -1,0 +1,17 @@
+$ nxc smb 10.10.10.0/24 -u jdoe -p 'Summer2024!' --shares --pass-pol
+SMB         10.10.10.10     445    DC01             [*] Windows Server 2019 Build 17763 x64 (name:DC01) (domain:corp.local) (signing:True) (SMBv1:False)
+SMB         10.10.10.15     445    WEB01            [*] Windows 10.0 Build 19041 x64 (name:WEB01) (domain:corp.local) (signing:False) (SMBv1:True)
+SMB         10.10.10.10     445    DC01             [+] corp.local\jdoe:Summer2024!
+SMB         10.10.10.15     445    WEB01            [+] corp.local\jdoe:Summer2024! (Pwn3d!)
+SMB         10.10.10.20     445    FILE01           [-] corp.local\svc-backup:Summer2024! STATUS_LOGON_FAILURE
+SMB         10.10.10.21     445    APP01            [-] corp.local\hruser:Summer2024! STATUS_ACCOUNT_LOCKED_OUT
+SMB         10.10.10.10     445    DC01             [*] Enumerated shares
+SMB         10.10.10.10     445    DC01             Share           Permissions     Remark
+SMB         10.10.10.10     445    DC01             -----           -----------     ------
+SMB         10.10.10.10     445    DC01             ADMIN$                          Remote Admin
+SMB         10.10.10.10     445    DC01             SYSVOL          READ            Logon server share
+SMB         10.10.10.10     445    DC01             NETLOGON        READ            Logon server share
+SMB         10.10.10.10     445    DC01             [*] Dumping password info for domain: CORP
+SMB         10.10.10.10     445    DC01             Minimum password length: 7
+SMB         10.10.10.10     445    DC01             Password Complexity Flags: 000000
+SMB         10.10.10.10     445    DC01             Account Lockout Threshold: 5

@@ -60,6 +60,8 @@ box — the same list a learner meets working through a CTF or a HackTheBox mach
 | `linprivesc` | **linPEAS** output, or a Linux enum dump | The Linux-privesc checklist items the structured detectors don't already cover: writable `/etc/passwd`/`sudoers`/systemd units, `no_root_squash`, the docker socket, `ld.so.preload`, SSH keys, secrets, and the CVE tags linPEAS prints (PwnKit, Dirty Pipe, …) |
 | `nmapscripts` | **nmap** `-sC`/`-sV`/`-A`/`--script` output (the `\| script:` blocks) | Every NSE script result explained — Heartbleed, Shellshock, MS17-010, ftp-anon, http-methods, smb-os-discovery, and any `*-vuln-*` script that says VULNERABLE even if it's not in the table |
 | `sqlmap` | the **sqlmap** command you ran + its output (`Parameter:`/`Type:`/`back-end DBMS:`) | A step-by-step walkthrough from "confirmed injection" to creds/RCE — every sqlmap command rebuilt with *your* URL/cookie/param, paired with the by-hand SQL for the detected DBMS so you learn manual SQLi |
+| `ad`     | **NetExec/CrackMapExec**, enum4linux-ng, `ldapsearch`, **BloodHound/SharpHound**, PowerView, **Certipy** (AD CS), Impacket, Rubeus, **Responder**, kerbrute, the coercion tools | The whole Active Directory attack chain as signatures: valid creds & `(Pwn3d!)`, weak password policy / lockout, kerberoasting & AS-REP roasting, delegation (unconstrained / constrained / RBCD), the BloodHound ACL edges (`GenericAll`, `WriteDacl`, `ForceChangePassword`, `DCSync`, Shadow Credentials), AD CS **ESC1–ESC13**, coercion & NTLM relay (PetitPotam, PrinterBug, ntlmrelayx, mitm6), and the big CVEs (**Zerologon**, **noPac**, PrintNightmare) — each with the next command |
+| `adhash` | **Kerberoast** `$krb5tgs$`, **AS-REP** `$krb5asrep$`, **NetNTLMv1/v2** (Responder captures), **NTDS.dit / SAM** NT hashes (`user:rid:lm:nt:::`), DCC2 | Every captured hash turned into the exact `hashcat -m` / `john` mode — and the call on whether to **crack** it, **pass** it (pass-the-hash), or **relay** it live; the `krbtgt` hash is flagged as **Golden Ticket** material |
 
 Paste more than one at a time if you like — each format is detected and reported separately, so
 a whole enumeration dump goes in at once and comes back split by tool.
@@ -101,6 +103,54 @@ you shouldn't lean on it). The steps print in order regardless of severity.
 ```sh
 silverfinder sqlmap_out.txt         # paste the command line + the Parameter/Type/DBMS block
 ```
+
+### Active Directory — the whole attack chain, tool by tool
+
+A domain assessment throws a lot of tools at a network, and their output is dense and easy to
+skim past. The `ad` detector reads it the way the winPEAS/linPEAS engines read a local scan:
+strip the colours, match every interesting line to a technique, and say **what it is and the
+next command to run**. It groups findings by attack stage, so a whole capture makes sense at a
+glance:
+
+- **Enumeration** — null/anonymous sessions, anonymous LDAP bind, RID cycling, weak password
+  policy, `MachineAccountQuota`, and a lockout threshold that tells you how hard you can spray.
+- **Credentials** — a confirmed valid pair, `(Pwn3d!)` local admin, GPP `cpassword`, LAPS you can
+  read, a password sitting in a `description` attribute, spray hits, and lockout/`must-change` states.
+- **Kerberos** — kerberoasting (`GetUserSPNs`), AS-REP roasting (`GetNPUsers`), accounts with an
+  SPN, overpass/pass-the-ticket, Golden/Silver tickets, MS14-068.
+- **Delegation** — unconstrained (coerce a DC → its TGT), constrained (S4U), and resource-based
+  (RBCD) — the abuse spelled out for each.
+- **ACLs** — the BloodHound edges: `GenericAll`, `GenericWrite`, `WriteDacl`, `WriteOwner`,
+  `ForceChangePassword`, `AddMember`, `AddKeyCredentialLink` (Shadow Credentials), `DCSync`.
+- **AD CS** — the ESC family, **ESC1 through ESC13**, plus whatever Certipy marks `[!] Vulnerable`.
+- **Coercion & relay** — PetitPotam, PrinterBug, DFSCoerce, ntlmrelayx, Responder captures, mitm6.
+- **CVEs** — Zerologon, noPac (sAMAccountName spoofing), PrintNightmare.
+- **Dumping / lateral / trusts** — NTDS/secretsdump, LSASS dumps, DCC2, psexec/wmiexec, WinRM,
+  pass-the-hash, domain/forest trusts and SID history.
+
+The hashes those tools spit out are read by the sibling `adhash` detector, which is to AD what
+`shadow` is to Linux: it turns each hash into the exact cracking command, and tells you when
+*not* to crack. Paste a whole run — NetExec across a subnet, a BloodHound path, a Certipy find,
+an Impacket roast — and both fire at once:
+
+```sh
+silverfinder netexec_out.txt        # (Pwn3d!), spray hits, signing, password policy
+silverfinder -q ldapsearch.txt      # SPNs, delegation, MachineAccountQuota, adminCount
+silverfinder secretsdump_out.txt    # NT hashes -> pass-the-hash; krbtgt -> Golden Ticket
+```
+
+```
+  CRIT   Kerberoast TGS-REP (RC4 / etype 23) — 1 hash captured
+         A service ticket encrypted with the service account's RC4 key. Any authenticated domain
+         user can request it, and it cracks offline with no lockout and no touching the target.
+         · crack: hashcat -m 13100 hashes.txt /usr/share/wordlists/rockyou.txt  (john: --format=krb5tgs)
+         · next: crack straight to the account's cleartext password
+```
+
+It recognises and explains AD tradecraft — it does not run any of it. Everything the `ad`
+detector knows is a row in `data/ad_signatures.tsv`, and every hash format `adhash` reads is a
+row in `data/ad_hashes.tsv`, so covering one more tool, ESC or hash type is a single new line —
+no rebuild.
 
 ### Automatic CVE matching
 
@@ -177,10 +227,13 @@ data/linux_signatures.tsv    regex -> Linux privesc finding (the linPEAS engine)
 data/nmap_scripts.tsv        NSE script id -> what it found and where to look
 data/sqlmap_steps.tsv        the sqlmap attack ladder, in order
 data/sqlmap_dbms.tsv         per-DBMS manual-SQLi building blocks (the by-hand equivalents)
+data/ad_signatures.tsv       regex -> Active Directory enum/attack finding (the `ad` engine)
+data/ad_hashes.tsv           captured hash -> hashcat/john crack mode (kerberoast, NetNTLM, NTDS)
 ```
 
-`windows_signatures.tsv` is a plain regex-per-row table, so covering one more Windows check —
-or your own custom tell — is a single new line, no code.
+`windows_signatures.tsv` and `ad_signatures.tsv` are plain regex-per-row tables, so covering one
+more Windows privesc check, AD technique, ESC or CVE — or your own custom tell — is a single new
+line, no code.
 
 Several tables are shared, so one edit teaches several detectors: `gtfobins.tsv` feeds `setuid`
 and `sudo`; `writable_dirs.tsv` feeds `setuid` and `cron`; `service_cves.tsv` feeds `ftp`, `smb`
@@ -262,5 +315,5 @@ floor with `SILVERDETECTOR_RELEASE=21 ./build.sh` if you ever need to. (`--updat
 `curl`/`wget` and `unzip`, falling back to the JDK's `jar` — all standard on a pentest box.)
 
 ```sh
-./test.sh             # 169 checks over the samples, detectors, updater and override behaviour
+./test.sh             # 200 checks over the samples, detectors, updater and override behaviour
 ```

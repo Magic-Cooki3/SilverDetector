@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import silverdetector.detect.AdDetector;
+import silverdetector.detect.AdHashDetector;
 import silverdetector.detect.CapabilitiesDetector;
 import silverdetector.detect.CronDetector;
 import silverdetector.detect.FtpDetector;
@@ -39,6 +41,8 @@ public final class DetectorRegistry {
 
         detectors.add(new WindowsPrivescDetector()); // winPEAS / whoami /priv / Windows enum
         detectors.add(new LinuxPrivescDetector());   // linPEAS / Linux enum (writable files, NFS, docker, CVE tags)
+        detectors.add(new AdDetector());            // Active Directory enum/attack (NetExec, BloodHound, Certipy, ...)
+        detectors.add(new AdHashDetector());        // Kerberoast/AS-REP/NetNTLM/NTDS hashes -> crack modes
         detectors.add(new SetuidDetector());        // find / -perm -4000 (and -2000)
         detectors.add(new GroupsDetector());        // id
         detectors.add(new SudoDetector());          // sudo -l
