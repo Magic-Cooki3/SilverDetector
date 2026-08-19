@@ -304,6 +304,21 @@ check "the krbtgt hash is flagged for golden tickets" says "forges Golden Ticket
 check "a NetNTLMv2 capture maps to hashcat 5600"  says "hashcat -m 5600" samples/responder.txt
 check "adhash counts the hashes it captured"      says "5 hashes captured" samples/secretsdump.txt
 check "adhash does not fire on /etc/shadow"       silent_about "\[adhash\]" samples/etc-shadow.txt
+
+echo
+echo "active directory (OSCP manual tradecraft)"
+check "the manual-AD paste picks the ad detector" says "\[ad\]" samples/ad-lateral.txt
+check "native net-domain enum is recognised"      says "Native domain enumeration" samples/ad-lateral.txt
+check "setspn SPN enumeration is flagged"         says "SPN enumeration (setspn)" samples/ad-lateral.txt
+check "session hunting is recognised"             says "session hunting" samples/ad-lateral.txt
+check "local admin access is flagged"             says "Local admin access on a host" samples/ad-lateral.txt
+check "runas /netonly is recognised"              says "runas /netonly" samples/ad-lateral.txt
+check "a shadow copy of the DC is critical"       says "Volume Shadow Copy" samples/ad-lateral.txt
+check "ntdsutil IFM extraction is critical"       says "NTDS.dit offline extraction" samples/ad-lateral.txt
+check "a saved SYSTEM hive is critical"           says "registry hive saved" samples/ad-lateral.txt
+check "mimikatz sekurlsa is an LSASS dump"        says "LSASS memory dump" samples/ad-lateral.txt
+check "mimikatz lsadump::sam is flagged"          says "mimikatz credential" samples/ad-lateral.txt
+check "mimikatz pass-the-hash is recognised"      says "Pass-the-hash" samples/ad-lateral.txt
 check "a bare krb5tgs paste is understood" \
     sh -c 'printf "\$krb5tgs\$23\$*svc\$CORP\$MSSQLSvc/h*\$abc\$def123456789abcdef\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "hashcat -m 13100"'
 
