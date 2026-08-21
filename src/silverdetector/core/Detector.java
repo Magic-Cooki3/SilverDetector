@@ -38,4 +38,16 @@ public interface Detector {
     default int order() {
         return 100;
     }
+
+    /**
+     * Whether {@link #analyze} returns findings in a deliberate sequence that must be preserved
+     * (a step-by-step walkthrough), rather than ranked by severity. The report reads
+     * bottom-up - it lays the worst finding nearest the prompt so you don't scroll - which means
+     * it re-orders severity-ranked runs. A sequential run opts out of that and prints in the
+     * order the detector emitted. Almost every detector is severity-ranked; only walkthroughs
+     * (sqlmap) override this.
+     */
+    default boolean sequential() {
+        return false;
+    }
 }

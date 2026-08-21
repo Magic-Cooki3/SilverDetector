@@ -2,6 +2,7 @@ package silverdetector.report;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -34,10 +35,23 @@ public final class TextReport {
         }
 
         Map<Severity, Integer> totals = new EnumMap<>(Severity.class);
-        for (Analyzer.Run run : result.runs()) {
+        // The report reads bottom-up: the summary sits at the foot by the prompt, so the worst
+        // findings belong nearest it. Order the sections least-severe first, so the section
+        // holding the top finding prints last. (Stable: ties keep detection order.)
+        List<Analyzer.Run> ordered = new ArrayList<>(result.runs());
+        ordered.sort(Comparator.comparingInt(TextReport::maxRank));
+        for (Analyzer.Run run : ordered) {
             printRun(run, totals);
         }
         printSummary(result, totals);
+    }
+
+    private static int maxRank(Analyzer.Run run) {
+        int max = 0;
+        for (Finding finding : run.findings()) {
+            max = Math.max(max, finding.severity().rank());
+        }
+        return max;
     }
 
     private void printRun(Analyzer.Run run, Map<Severity, Integer> totals) {
@@ -54,18 +68,30 @@ public final class TextReport {
         }
         out.println();
 
+        List<Finding> shown = new ArrayList<>();
         int hidden = 0;
         for (Finding finding : run.findings()) {
             totals.merge(finding.severity(), 1, Integer::sum);
             if (!showNormal && !finding.isAnomaly()) {
                 hidden++;
-                continue;
+            } else {
+                shown.add(finding);
             }
-            printFinding(finding);
         }
+        // Read bottom-up: lay the findings least-severe first so the worst is last, right above
+        // the summary. A walkthrough (sqlmap) keeps its deliberate step order instead.
+        if (!run.detector().sequential()) {
+            shown.sort(Comparator.comparingInt(f -> f.severity().rank()));
+        }
+        // The hidden-count note is context, so it goes at the top of the section, out of the way
+        // of the findings you are reading up towards.
         if (hidden > 0) {
             out.println(Ansi.dim("  (" + hidden + " normal entr" + (hidden == 1 ? "y" : "ies")
                     + " hidden - drop --anomalies to see them)"));
+            out.println();
+        }
+        for (Finding finding : shown) {
+            printFinding(finding);
         }
     }
 

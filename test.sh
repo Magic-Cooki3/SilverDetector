@@ -56,6 +56,21 @@ silent_about() {
     return 0
 }
 
+# before <upper> <lower> <args...>  : <upper> prints above <lower> in the report
+before() {
+    upper=$1
+    lower=$2
+    shift 2
+    text=$(sd "$@")
+    lu=$(printf '%s\n' "$text" | grep -n -- "$upper" | head -1 | cut -d: -f1)
+    ll=$(printf '%s\n' "$text" | grep -n -- "$lower" | head -1 | cut -d: -f1)
+    if [ -z "$lu" ] || [ -z "$ll" ]; then
+        echo "        missing a line: upper=$lu lower=$ll" >&2
+        return 1
+    fi
+    [ "$lu" -lt "$ll" ] || { echo "        expected '$upper' ($lu) above '$lower' ($ll)" >&2; return 1; }
+}
+
 echo
 echo "detection"
 check "ss table picks the ports detector"        says "read with: ports" samples/ss-tulpn.txt
@@ -229,6 +244,14 @@ check "a MySQL sqlmap paste gets MySQL manual SQL" \
     sh -c 'printf "sqlmap -u \"http://t/p.php?id=1\"\nParameter: id (GET)\n    Type: UNION query\n    Title: Generic UNION query (NULL) - 3 columns\n    Payload: id=-1 UNION ALL SELECT NULL,CONCAT(0x71),NULL-- -\nback-end DBMS: MySQL\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q "group_concat"'
 check "a DBA-confirmed paste offers --passwords" \
     sh -c 'printf "sqlmap -u \"http://t/p.php?id=1\"\nParameter: id (GET)\n    Type: UNION query\n    Title: Generic UNION query (NULL) - 3 columns\n    Payload: id=-1 UNION ALL SELECT NULL,CONCAT(1),NULL-- -\ncurrent user is DBA: True\nback-end DBMS: MySQL\n" | SILVERDETECTOR_COLOR=0 java -jar silverdetector.jar 2>/dev/null | grep -q -- "--passwords"'
+
+echo
+echo "report ordering (read bottom-up: worst nearest the prompt)"
+check "crits sink below warnings"                before "WARN   /usr/local/bin/backup-helper" "CRIT   /usr/bin/find" samples/find-perm-4000.txt
+check "crits sink below notices"                 before "NOTICE /usr/bin/pkexec" "CRIT   /usr/bin/find" samples/find-perm-4000.txt
+check "the custom binary lands last in its list" before "NOTICE /usr/lib/snapd/snap-confine" "WARN   /usr/bin/bugtracker" samples/find-perm-snap.txt
+check "the worst section prints last"            before "WARN   /usr/local/bin/dstat" "CRIT   tcp/31337" samples/mixed.txt
+check "a walkthrough is not re-ranked by severity" before "SQL injection CONFIRMED" "Step 6:" samples/sqlmap.txt
 
 echo
 echo "windows privesc (winPEAS / checklist)"

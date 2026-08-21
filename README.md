@@ -211,6 +211,12 @@ attack anything.
 | `INFO`   | Context, not a problem |
 | `OK`     | Expected, documented, boring. Printed so you can see what it is |
 
+The report **reads bottom-up**: the summary sits at the foot by your prompt, and the findings
+climb in severity towards it, so the worst thing — the `CRIT`, or the lone custom `WARN` — is the
+last line above the summary, no scrolling back to the top. When a paste holds several formats the
+sections are ordered the same way, most-severe last. (The one exception is the `sqlmap`
+walkthrough, whose steps stay in running order.)
+
 Exit codes, for scripting: `0` clean, `1` anomalies found, `2` usage or I/O error,
 `3` nothing recognised the input. `--strict` counts `NOTICE` as a failure too.
 

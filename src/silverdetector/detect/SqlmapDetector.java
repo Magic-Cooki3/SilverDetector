@@ -69,6 +69,13 @@ public final class SqlmapDetector implements Detector {
         return 18;
     }
 
+    /** The steps are a walkthrough - fingerprint -> dump -> RCE - so they print in that order,
+     *  not re-ranked by severity like every other detector. */
+    @Override
+    public boolean sequential() {
+        return true;
+    }
+
     @Override
     public Detection sniff(Document doc) {
         int signals = 0;
