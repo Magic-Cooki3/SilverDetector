@@ -157,11 +157,15 @@ public final class SetuidDetector implements Detector {
             }
         } else {
             label = entry.basename();
-            detail = "No entry in suid_known.tsv and not a known GTFOBins binary. Work out which "
-                     + "package owns it (pacman -Qo / dpkg -S) and why it needs the bit.";
+            detail = "Not in suid_known.tsv and not a known GTFOBins binary - so either a stock file "
+                     + "this build does not list yet, or a custom set-id binary worth a real look. "
+                     + "The two notes below settle both: whether a package shipped it, and what it "
+                     + "actually runs.";
             severity = Severity.WARN;
-            reason = "unknown set-id binary - not in the standard set for a Linux install";
+            reason = "unknown set-id binary - not in the standard set this build knows about";
         }
+
+        boolean unknown = knownRow == null && gtfoRow == null;
 
         Finding finding = Finding.of(severity, entry.path(), label, detail,
                 entry.raw().strip(), entry.line());
@@ -175,6 +179,9 @@ public final class SetuidDetector implements Detector {
 
         if (!reason.isEmpty()) {
             finding = finding.note(reason);
+        }
+        if (unknown) {
+            finding = addVerificationNotes(finding, entry);
         }
         if (entry.bitsKnown()) {
             String bits = entry.bitsLabel();
@@ -218,6 +225,54 @@ public final class SetuidDetector implements Detector {
         return Finding.of(severity, entry.path(), label, detail, entry.raw().strip(), entry.line())
                 .note("bits: " + entry.bitsLabel()
                       + (entry.modeString().isEmpty() ? "" : " (" + entry.modeString() + ")"));
+    }
+
+    /**
+     * The two questions a wall of "unknown SUID" WARNs leaves you with: is it really not a
+     * distro default, and how do I tell whether it hands me a privilege. Answers both with
+     * commands built from this exact path, plus - if it is set-id to a group that is worth
+     * something - what that group buys you (reused straight from {@code groups.tsv}).
+     */
+    private Finding addVerificationNotes(Finding finding, Entry entry) {
+        String gain = privilegeGain(entry);
+        if (gain != null) {
+            finding = finding.note(gain);
+        }
+        String p = entry.path();
+        finding = finding.note("is it truly non-default? ask the package DB who owns it: "
+                + "dpkg -S " + p + " (Debian/Ubuntu/Kali) · rpm -qf " + p + " (RHEL/Fedora) · "
+                + "pacman -Qo " + p + " (Arch). If no package owns it, it did not ship with the "
+                + "distro - treat it as planted. If one does, it is that package's default, so the "
+                + "bit is only interesting if the program itself is (next note).");
+        finding = finding.note("check the priv: strings -n 6 " + p + " | grep -iE "
+                + "'/bin/|/tmp|system|exec|popen|setuid|chmod|cp |env|PATH=' shows what it runs; "
+                + "ltrace -f " + p + " (or strace -f -e trace=execve,openat) shows the commands and "
+                + "files it touches when you run it. A command it calls by bare name, or any file or "
+                + "library you can write that it opens, is the hijack - that is the escalation.");
+        return finding;
+    }
+
+    /**
+     * What running this binary hands you beyond your own rights: the owner's identity if it is
+     * SUID to a non-root account whose files matter, and the group's powers if it is SGID to a
+     * group {@code groups.tsv} rates as sensitive (shadow -> the hashes, disk -> the raw disk,
+     * ...). Returns {@code null} when there is nothing special to say.
+     */
+    private static String privilegeGain(Entry entry) {
+        if (!entry.sgid() || entry.group().isEmpty()) {
+            return null;
+        }
+        Row groupRow = Kb.table("groups").first(entry.group());
+        if (groupRow == null
+                || !Severity.parse(groupRow.get("severity"), Severity.OK).atLeast(Severity.NOTICE)) {
+            return null;
+        }
+        String note = "runs set-GID '" + entry.group() + "' - " + groupRow.get("description", "");
+        String exploit = groupRow.get("exploit", "-");
+        if (!exploit.isEmpty() && !exploit.equals("-")) {
+            note += "  (try: " + exploit + ")";
+        }
+        return note;
     }
 
     private static boolean bitsMatch(String expected, Entry entry) {
