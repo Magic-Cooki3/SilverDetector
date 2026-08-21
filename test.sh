@@ -90,6 +90,18 @@ check "unknown SUID binary warns"                says "WARN   /usr/local/bin/bac
 check "SGID tty write is normal"                 says "OK     /usr/bin/write" samples/mixed.txt
 check "unknown SGID binary warns"                says "WARN   /usr/local/bin/dstat" samples/mixed.txt
 
+# A real box's -perm -4000 hunt: dozens of snap copies drown one custom binary.
+check "the custom binary is the standout warn"   says "WARN   /usr/bin/bugtracker" samples/find-perm-snap.txt
+check "custom binary is labelled custom"         says "custom set-id binary" samples/find-perm-snap.txt
+check "custom binary gets the is-it-default step" says "is it truly non-default" samples/find-perm-snap.txt
+check "custom binary gets the check-the-priv step" says "check the priv" samples/find-perm-snap.txt
+check "snap copies fold into one info line"      says "30 set-id binaries inside read-only snap images" samples/find-perm-snap.txt
+check "the snap copies do not each warn"          silent_about "WARN   /snap/" samples/find-perm-snap.txt
+check "a standard binary at a variant path is ok" says "OK     /bin/fusermount" samples/find-perm-snap.txt
+check "policykit-1 path resolves to the polkit helper" says "OK     /usr/lib/policykit-1/polkit-agent-helper-1" samples/find-perm-snap.txt
+check "snap-confine is a notice, not a warn"     says "NOTICE /usr/lib/snapd/snap-confine" samples/find-perm-snap.txt
+check "lxc-user-nic is a notice, not a warn"     says "NOTICE /usr/lib/x86_64-linux-gnu/lxc/lxc-user-nic" samples/find-perm-snap.txt
+
 echo
 echo "capabilities"
 check "cap_setuid on python is critical"         says "CRIT   /usr/bin/python3.12" samples/getcap.txt

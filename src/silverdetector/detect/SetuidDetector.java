@@ -2,7 +2,11 @@ package silverdetector.detect;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import silverdetector.core.Detection;
 import silverdetector.core.Detector;
@@ -90,6 +94,17 @@ public final class SetuidDetector implements Detector {
                 || Kb.table("gtfobins").containsKey(entry.basename());
     }
 
+    /** A directory where a distro legitimately keeps set-id binaries (so a standard binary found
+     *  here at a non-canonical path is a variant, not an anomaly). Excludes /opt, /usr/local and
+     *  the writable dirs, which stay worth a second look. */
+    private static boolean isCanonicalSystemBin(String path) {
+        return path.startsWith("/usr/bin/") || path.startsWith("/bin/")
+                || path.startsWith("/usr/sbin/") || path.startsWith("/sbin/")
+                || path.startsWith("/usr/lib/") || path.startsWith("/lib/")
+                || path.startsWith("/usr/lib64/") || path.startsWith("/lib64/")
+                || path.startsWith("/usr/libexec/");
+    }
+
     private static boolean isSystemPath(String path) {
         return path.startsWith("/usr/") || path.startsWith("/bin/") || path.startsWith("/sbin/")
                 || path.startsWith("/opt/") || path.startsWith("/lib/") || path.startsWith("/etc/")
@@ -100,10 +115,24 @@ public final class SetuidDetector implements Detector {
     public List<Finding> analyze(Document doc) {
         Table known = Kb.table("suid_known");
         Table gtfobins = Kb.table("gtfobins");
+        Map<String, Row> knownByBase = knownByBasename(known);
 
         List<Finding> findings = new ArrayList<>();
+        List<Entry> snapImages = new ArrayList<>();
         for (Entry entry : PermEntries.parse(doc)) {
-            findings.add(assess(entry, known, gtfobins));
+            // A set-id copy of a standard binary inside a read-only snap image is never the
+            // vector - and there can be dozens (one per snap revision). Fold them into a single
+            // line instead of drowning the report. Anything with an unfamiliar name still gets
+            // assessed on its own, even inside a snap.
+            if (!entry.directory() && isSnapImage(entry.path())
+                    && knownByBase.containsKey(entry.basename())) {
+                snapImages.add(entry);
+            } else {
+                findings.add(assess(entry, known, gtfobins, knownByBase));
+            }
+        }
+        if (!snapImages.isEmpty()) {
+            findings.add(snapSummary(snapImages));
         }
         findings.sort(Comparator
                 .comparingInt((Finding f) -> f.severity().rank()).reversed()
@@ -111,7 +140,61 @@ public final class SetuidDetector implements Detector {
         return findings;
     }
 
-    private Finding assess(Entry entry, Table known, Table gtfobins) {
+    /** basename -&gt; the canonical row that owns it, so a standard binary is recognised even at
+     *  a path the table doesn't list verbatim (usr-merge, multiarch, a snap or bundled copy). */
+    private static Map<String, Row> knownByBasename(Table known) {
+        Map<String, Row> map = new HashMap<>();
+        for (Row row : known.rows()) {
+            String path = row.get("path", "");
+            int slash = path.lastIndexOf('/');
+            String base = slash >= 0 ? path.substring(slash + 1) : path;
+            if (!base.isEmpty()) {
+                map.putIfAbsent(base, row);            // first row wins = the canonical path
+            }
+        }
+        return map;
+    }
+
+    private static boolean isSnapImage(String path) {
+        return path.startsWith("/snap/") || path.startsWith("/var/lib/snapd/snap/");
+    }
+
+    /** "core 11420" from /snap/core/11420/usr/bin/su - the snap name and its revision. */
+    private static String snapRoot(String path) {
+        String[] p = path.split("/");
+        if (p.length >= 4 && "snap".equals(p[1])) {
+            return p[2] + " " + p[3];
+        }
+        if (p.length >= 6 && "var".equals(p[1]) && "snapd".equals(p[3])) {
+            return p[4] + " " + p[5];
+        }
+        return "snap";
+    }
+
+    private Finding snapSummary(List<Entry> folded) {
+        Map<String, Integer> roots = new LinkedHashMap<>();
+        int firstLine = Integer.MAX_VALUE;
+        for (Entry entry : folded) {
+            roots.merge(snapRoot(entry.path()), 1, Integer::sum);
+            firstLine = Math.min(firstLine, entry.line());
+        }
+        String rootList = roots.entrySet().stream()
+                .map(e -> e.getKey() + " (" + e.getValue() + ")")
+                .collect(Collectors.joining(", "));
+        String detail = "Packaged copies of standard set-id binaries (su, sudo, mount, passwd, ...) "
+                + "inside read-only snap squashfs images. A file inside a mounted snap can't be "
+                + "modified and each runs under snap confinement, so none of these is a local-privesc "
+                + "vector - they are the same binaries you already see at their real paths. Folded "
+                + "into one line so they don't bury the binaries that matter.";
+        return Finding.of(Severity.INFO, "/snap/*",
+                        folded.size() + " set-id binaries inside read-only snap images",
+                        detail, "", firstLine == Integer.MAX_VALUE ? 0 : firstLine)
+                .note("snap revisions here: " + rootList)
+                .note("drop them from the hunt next time: "
+                        + "find / -perm -4000 -type f 2>/dev/null | grep -v '^/snap/'");
+    }
+
+    private Finding assess(Entry entry, Table known, Table gtfobins, Map<String, Row> knownByBase) {
         Row knownRow = known.first(entry.path());
         Row gtfoRow = gtfobins.first(entry.basename());
 
@@ -119,6 +202,7 @@ public final class SetuidDetector implements Detector {
         String label;
         String detail;
         String reason;
+        boolean wantVerify = false;
 
         if (entry.directory()) {
             return directoryFinding(entry, knownRow);
@@ -155,17 +239,42 @@ public final class SetuidDetector implements Detector {
                 reason = "not part of any stock set-id set, and this binary can be turned into "
                         + "a root shell or arbitrary root file access";
             }
+        } else if (knownByBase.containsKey(entry.basename())) {
+            // The name is a standard set-id binary, but this exact path is not the packaged one.
+            // Where it sits decides everything: a system dir is just a usr-merge/multiarch/bundled
+            // copy; a writable dir means someone planted a look-alike; anywhere else, verify.
+            Row base = knownByBase.get(entry.basename());
+            String canonical = base.get("path", entry.path());
+            detail = base.get("description", "");
+            if (WritableDirs.match(entry.path()) != null) {
+                severity = Severity.CRITICAL;
+                label = entry.basename() + " - look-alike in a writable path";
+                reason = "a binary named like the standard '" + entry.basename() + "' (" + canonical
+                        + ") but sitting where packages never put one - this is not the packaged "
+                        + "binary; treat it as planted until you confirm otherwise";
+                wantVerify = true;
+            } else if (isCanonicalSystemBin(entry.path())) {
+                severity = Severity.parse(base.get("severity"), Severity.OK);
+                label = base.get("purpose", entry.basename()) + " (standard binary, variant path)";
+                reason = "same binary as " + canonical + ", just at a different system path "
+                        + "(usr-merge, a multiarch dir, or a bundled copy) - not an anomaly";
+            } else {
+                severity = Severity.NOTICE;
+                label = base.get("purpose", entry.basename()) + " (name matches a standard binary)";
+                reason = "shares its name with the standard '" + entry.basename() + "' (" + canonical
+                        + ") but sits at an unusual path - confirm it really is that binary";
+                wantVerify = true;
+            }
         } else {
-            label = entry.basename();
-            detail = "Not in suid_known.tsv and not a known GTFOBins binary - so either a stock file "
-                     + "this build does not list yet, or a custom set-id binary worth a real look. "
-                     + "The two notes below settle both: whether a package shipped it, and what it "
-                     + "actually runs.";
+            label = entry.basename() + " - custom set-id binary (no package owns it here)";
+            detail = "This name is in neither the standard set-id set this build knows nor GTFOBins, "
+                     + "so on a stock box it is the odd one out - a hand-placed set-id binary is the "
+                     + "classic intended-privesc. The two notes below settle it: whether a package "
+                     + "shipped it, and what it actually runs.";
             severity = Severity.WARN;
-            reason = "unknown set-id binary - not in the standard set this build knows about";
+            reason = "custom set-id binary - not part of any standard or known-exploitable set";
+            wantVerify = true;
         }
-
-        boolean unknown = knownRow == null && gtfoRow == null;
 
         Finding finding = Finding.of(severity, entry.path(), label, detail,
                 entry.raw().strip(), entry.line());
@@ -180,7 +289,7 @@ public final class SetuidDetector implements Detector {
         if (!reason.isEmpty()) {
             finding = finding.note(reason);
         }
-        if (unknown) {
+        if (wantVerify) {
             finding = addVerificationNotes(finding, entry);
         }
         if (entry.bitsKnown()) {

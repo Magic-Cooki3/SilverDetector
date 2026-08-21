@@ -72,6 +72,8 @@ path	bits	purpose	severity	description
 /usr/lib/eject/dmcrypt-get-device	suid	eject helper	OK	Resolves the underlying device for encrypted volumes.
 /usr/bin/newuidmap	any	user namespace uid mapping	OK	Writes uid_map for rootless containers; SUID on some distros, cap_setuid on others.
 /usr/bin/newgidmap	any	user namespace gid mapping	OK	Writes gid_map for rootless containers.
+/usr/lib/snapd/snap-confine	suid	snap sandbox launcher	NOTICE	snapd's confinement helper - sets up the sandbox for every snap. SUID root on any Ubuntu with snap. History of local root here (CVE-2019-7304 "Dirty Sock", CVE-2021-44731) - check the snapd version.
+/usr/lib/x86_64-linux-gnu/lxc/lxc-user-nic	sgid	LXC unprivileged NIC helper	NOTICE	Lets unprivileged LXC containers create veth interfaces; ships with the lxc package (the multiarch dir varies). Historic local-root bugs (CVE-2017-5985, CVE-2018-6556) - check the lxc version.
 /usr/bin/staprun	suid	SystemTap runner	NOTICE	Loads SystemTap kernel modules. If your user is in the stapusr/stapdev group this is a direct route to kernel code execution.
 /usr/bin/pppd	suid	PPP dial-up daemon	NOTICE	Sets up PPP links. CVE-2020-8597 was a remote root here; only expected if you actually use PPP/PPTP.
 /usr/sbin/pppd	suid	PPP dial-up daemon	NOTICE	Sets up PPP links; only expected if you use PPP.
